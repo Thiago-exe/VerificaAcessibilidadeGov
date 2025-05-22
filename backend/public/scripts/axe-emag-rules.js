@@ -9,7 +9,7 @@
         );
       },
     },
-    // Ancora para bloco
+    // Ancora para bloco 1.5.4
     {
       id: "ancora-para-bloco",
       evaluate: function (node) {
@@ -37,7 +37,34 @@
         return true;
       },
     },
-    // Accesskeys únicas
+    // 1.5.1
+    {
+      id: "check-anchor-skip-links-presence",
+      evaluate: function (node) {
+        const skipLinks = node.querySelectorAll('a[href^="#"]');
+        return skipLinks.length > 0;
+      },
+      metadata: {
+        description: "Garante que existam âncoras que permitam saltar entre seções da página.",
+      }
+    },
+    // 1.5.2
+    {
+      id: "check-anchor-skip-links-target",
+      evaluate: function (node) {
+        const anchors = Array.from(node.querySelectorAll('a[href^="#"]'));
+        const ids = new Set(Array.from(node.querySelectorAll('[id]')).map(el => el.id));
+    
+        return anchors.every(anchor => {
+          const href = anchor.getAttribute('href').slice(1); // Remove o #
+          return href.length === 0 || ids.has(href);
+        });
+      },
+      metadata: {
+        description: "Garante que todas as âncoras de salto tenham um destino correspondente na página.",
+      }
+    },
+    // Accesskeys únicas 1.5.11
     {
       id: "accesskey-unico",
       evaluate: function () {
@@ -50,7 +77,7 @@
         return duplicates.length === 0;
       },
     },
-    // Primeiro link da pagina deve pular pro conteudo
+    // Primeiro link da pagina deve pular pro conteudo 1.5.9
     {
       id: "primeiro-link-para-conteudo",
       evaluate: function () {
@@ -265,20 +292,20 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.6",
       }
     },
-    // 1.5
+    // 1.5 tem que revisar isso ai talvez precise separar como as outras
     {
       id: "emag-ancoras-bloco",
       selector: "body",
-      any: ["ancora-para-bloco", "primeiro-link-para-conteudo"],
-      all: ["accesskey-unico"],
+      any: ["ancora-para-bloco", "primeiro-link-para-conteudo", "check-anchor-skip-links-presence"],
+    all: ["accesskey-unico","check-anchor-skip-links-target"],
       none: [],
       enabled: true,
       tags: ["emag", "barra-acessibilidade", "atalhos"],
       impact: "moderate",
       metadata: {
         description:
-          "Deve haver âncoras acessíveis no início da página que permitam pular para blocos de conteúdo como menu, conteúdo principal e busca.",
-        help: "EMAG 3.1 R1.5 - Falta de âncoras acessíveis.",
+          "Deve haver âncoras acessíveis no início da página que permitam pular para blocos de conteúdo como menu, conteúdo principal e busca. É importante ressaltar que o primeiro link da página deve ser o de ir para o conteúdo.",
+        help: "EMAG 3.1 R1.5 - Âncoras acessíveis.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
       }
     },
