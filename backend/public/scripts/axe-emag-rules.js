@@ -141,6 +141,7 @@
   ];
 
   const emagRules = [
+    // 3.6.1
     {
       id: "img-sem-alt-emag",
       selector: "img",
@@ -157,6 +158,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.6",
       },
     },
+    // 1.5
     {
       id: "emag-ancoras-bloco",
       selector: "body",
@@ -173,6 +175,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
       },
     },
+    // 1.1.3
     {
       id: "css-inline",
       selector: "[style]",
@@ -189,6 +192,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
       },
     },
+    // 1.1.4
     {
       id: "css-internal",
       selector: "style",
@@ -205,6 +209,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
       },
     },
+    // 1.1.5
     {
       id: "js-inline",
       selector:
@@ -222,6 +227,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
       },
     },
+    // 1.1.6
     {
       id: "js-internal",
       selector: "script",

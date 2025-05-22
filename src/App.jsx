@@ -29,10 +29,10 @@ function App() {
     const aprovadas = resultados.passes?.length || 0;
     const inaplicaveis = resultados.inapplicable?.length || 0;
 
-    const totalAvaliadas = erros + avisos + aprovadas;
+    const totalAvaliadas = erros + avisos + aprovadas + inaplicaveis;
     const porcentagemAprovacao =
       totalAvaliadas > 0
-        ? ((aprovadas / totalAvaliadas) * 100).toFixed(2)
+        ? ((aprovadas / (totalAvaliadas-inaplicaveis)) * 100).toFixed(2)
         : "0.00";
 
     return {
