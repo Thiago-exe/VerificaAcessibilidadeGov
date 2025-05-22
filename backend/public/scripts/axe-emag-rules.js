@@ -422,14 +422,312 @@
       metadata: {
         description: "Garante que eventos não estejam aplicados a elementos não interativos.",
       }
+    },
+    //2.2.1
+    {
+      id: "check-noscript-with-script",
+      evaluate: function (node) {
+        const hasScript = node.querySelectorAll("script").length > 0;
+        const hasNoScript = node.querySelectorAll("noscript").length > 0;
+        return !hasScript || hasNoScript;
+      },
+      metadata: {
+        description: "Garante que exista um elemento <noscript> quando houver <script> na página.",
+      }
+    },
+    // 2.2.2
+    {
+      id: "check-object-has-text",
+      evaluate: function (node) {
+        const objects = node.querySelectorAll("object");
+        let valid = true;
+    
+        objects.forEach(obj => {
+          const textContent = obj.textContent.trim();
+          if (textContent === "") {
+            valid = false;
+          }
+        });
+    
+        return valid;
+      },
+      metadata: {
+        description: "Garante que os elementos <object> tenham conteúdo alternativo textual.",
+      }
+    },
+    // 2.2.3
+    {
+      id: "check-embed-has-text",
+      evaluate: function (node) {
+        const embeds = node.querySelectorAll("embed");
+        let valid = true;
+    
+        embeds.forEach(embed => {
+          const textContent = embed.textContent.trim();
+          if (textContent === "") {
+            valid = false;
+          }
+        });
+    
+        return valid;
+      },
+      metadata: {
+        description: "Garante que os elementos <embed> tenham conteúdo alternativo textual.",
+      }
+    },
+    //2.2.4
+    {
+      id: "check-applet-has-text",
+      evaluate: function (node) {
+        const applets = node.querySelectorAll("applet");
+        let valid = true;
+    
+        applets.forEach(applet => {
+          const textContent = applet.textContent.trim();
+          if (textContent === "") {
+            valid = false;
+          }
+        });
+    
+        return valid;
+      },
+      metadata: {
+        description: "Garante que os elementos <applet> tenham conteúdo alternativo textual.",
+      }
+    },
+    //2.3.1
+    {
+      id: "check-auto-refresh",
+      evaluate: function (node) {
+        const metaRefresh = Array.from(node.querySelectorAll("meta"))
+          .some(el => (el.getAttribute("http-equiv") || "").toLowerCase() === "refresh");
+    
+        const scripts = node.querySelectorAll("script");
+        let hasSetTimeoutOrSetInterval = false;
+    
+        scripts.forEach(script => {
+          const content = script.innerText.toLowerCase();
+          if (content.includes("settimeout") || content.includes("setinterval")) {
+            hasSetTimeoutOrSetInterval = true;
+          }
+        });
+    
+        return !(metaRefresh || hasSetTimeoutOrSetInterval);
+      },
+      metadata: {
+        description: "Verifica se a página possui atualização automática via <meta http-equiv='refresh'> ou funções JavaScript como setTimeout e setInterval.",
+      }
+    },
+    // 2.4.1
+    {
+      id: "check-auto-redirect",
+      evaluate: function (node) {
+        // Verificar se existe meta http-equiv="refresh" com content
+        const metaRedirect = Array.from(node.querySelectorAll("meta"))
+          .some(el => (el.getAttribute("http-equiv") || "").toLowerCase() === "refresh" 
+                   && el.hasAttribute("content"));
+    
+        // Verificar se existe script com window.location
+        const scripts = node.querySelectorAll("script");
+        let hasWindowLocation = false;
+    
+        scripts.forEach(script => {
+          const content = script.innerText.toLowerCase();
+          if (content.includes("window.location")) {
+            hasWindowLocation = true;
+          }
+        });
+    
+        return !(metaRedirect || hasWindowLocation);
+      },
+      metadata: {
+        description: "Verifica se a página possui redirecionamento automático via <meta http-equiv='refresh'> com content ou window.location em script.",
+      }
+    },
+    // 2.6.1
+    {
+      id: "check-blink-element",
+      evaluate: function (node) {
+        return node.querySelectorAll("blink").length === 0;
+      },
+      metadata: {
+        description: "Garante que não exista o elemento <blink> na página.",
+      }
+    },    
+    // 2.6.2
+    {
+      id: "check-marquee-element",
+      evaluate: function (node) {
+        return node.querySelectorAll("marquee").length === 0;
+      },
+      metadata: {
+        description: "Garante que não exista o elemento <marquee> na página.",
+      }
+    },    
+    // 2.6.3
+    {
+      id: "check-animated-gif",
+      evaluate: function (node) {
+        const gifs = Array.from(node.querySelectorAll("img"))
+          .filter(img => {
+            const src = (img.getAttribute("src") || "").toLowerCase();
+            return src.endsWith(".gif");
+          });
+        
+        return gifs.length === 0;
+      },
+      metadata: {
+        description: "Verifica a presença de imagens GIF que podem gerar intermitência ou movimentação na tela.",
+      }
     }
-    
-    
-    
     
   ];
 
   const emagRules = [
+    // 2.6.1
+    {
+      id: "emag-no-blink",
+      selector: "body",
+      any: ["check-blink-element"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "parpadeo", "acessibilidade"],
+      impact: "serious",
+      metadata: {
+        description: "Verifica a presença do elemento <blink> na página.",
+        help: "EMAG 3.1 R2.6.1 - O uso do elemento <blink> deve ser evitado por causar distração e desconforto a usuários.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r2.6",
+      }
+    },    
+    // 2.6.2
+    {
+      id: "emag-no-marquee",
+      selector: "body",
+      any: ["check-marquee-element"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "marquee", "acessibilidade"],
+      impact: "serious",
+      metadata: {
+        description: "Verifica a presença do elemento <marquee> na página.",
+        help: "EMAG 3.1 R2.6.2 - O uso do elemento <marquee> deve ser evitado por causar desconforto visual e problemas de acessibilidade.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r2.6",
+      }
+    },    
+    // 2.6.3
+    {
+      id: "emag-no-animated-gif",
+      selector: "body",
+      any: ["check-animated-gif"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "imagem", "gif", "acessibilidade"],
+      impact: "moderate",
+      metadata: {
+        description: "Verifica a presença de imagens GIF com intermitência ou movimentação na tela.",
+        help: "EMAG 3.1 R2.6.3 - Imagens em movimento, como GIFs animados, podem gerar desconforto, epilepsia ou dificuldades para usuários sensíveis.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r2.6",
+      }
+    },    
+    // 2.4.1
+    {
+      id: "emag-auto-redirect",
+      selector: "body",
+      any: ["check-auto-redirect"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "redirecionamento"],
+      impact: "serious",
+      metadata: {
+        description: "Verifica se a página possui redirecionamento automático.",
+        help: "EMAG 3.1 R2.4.1 - Evitar redirecionamentos automáticos, pois podem prejudicar usuários de tecnologias assistivas.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r2.4",
+      }
+    },    
+    // 2.3.1
+    {
+      id: "emag-auto-refresh",
+      selector: "body",
+      any: ["check-auto-refresh"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "tempo"],
+      impact: "moderate",
+      metadata: {
+        description: "Verifica se a página possui atualização automática.",
+        help: "EMAG 3.1 R2.3.1 - Evitar atualizações automáticas que prejudiquem a navegação dos usuários.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r2.3",
+      }
+    },    
+    // 2.2.4
+    {
+      id: "emag-applet-has-text",
+      selector: "body",
+      any: ["check-applet-has-text"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "alternatives"],
+      impact: "moderate",
+      metadata: {
+        description: "Verifica se os elementos <applet> possuem conteúdo alternativo textual.",
+        help: "EMAG 3.1 R2.2.4 - Elementos <applet> devem fornecer conteúdo alternativo.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r2.2",
+      }
+    },    
+    // 2.2.3
+    {
+      id: "emag-embed-has-text",
+      selector: "body",
+      any: ["check-embed-has-text"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "alternatives"],
+      impact: "moderate",
+      metadata: {
+        description: "Verifica se os elementos <embed> possuem conteúdo alternativo textual.",
+        help: "EMAG 3.1 R2.2.3 - Elementos <embed> devem fornecer conteúdo alternativo.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r2.2",
+      }
+    },    
+    // 2.2.2
+    {
+      id: "emag-object-has-text",
+      selector: "body",
+      any: ["check-object-has-text"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "alternatives"],
+      impact: "serious",
+      metadata: {
+        description: "Verifica se os elementos <object> possuem conteúdo alternativo textual.",
+        help: "EMAG 3.1 R2.2.2 - Elementos <object> devem fornecer conteúdo alternativo.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r2.2",
+      }
+    },    
+    // 2.2.1
+    {
+      id: "emag-noscript-with-script",
+      selector: "body",
+      any: ["check-noscript-with-script"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "alternatives"],
+      impact: "serious",
+      metadata: {
+        description: "Verifica se há elemento <script> sem um <noscript> como alternativa.",
+        help: "EMAG 3.1 R2.2.1 - Páginas que usam scripts devem fornecer alternativas com <noscript>.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r2.2",
+      }
+    },    
     // 2.1.8
     {
       id: "emag-event-on-non-interactive",
