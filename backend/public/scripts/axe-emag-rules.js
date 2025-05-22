@@ -197,7 +197,53 @@
       },
       metadata: {
         description: "Garante que não existam múltiplos <h1> na página.",
+      }
+    },
+    // 1.4.1
+    {
+      id: "check-content-before-menu",
+      evaluate: function (node) {
+        const contentSelectors = ['main', '#content', '#wrapper', '[role="main"]'];
+        const menuSelectors = ['nav', '#menu', '[role="navigation"]'];
+    
+        const content = node.querySelector(contentSelectors.join(','));
+        const menu = node.querySelector(menuSelectors.join(','));
+    
+        if (!content || !menu) {
+          return true; // Se não existe um dos dois, não se aplica
+        }
+    
+        const position = content.compareDocumentPosition(menu);
+    
+        return (position & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+      }
+    },
+    // 1.4.3
+    {
+      id: "check-tabindex-presence",
+      evaluate: function (node) {
+        return node.querySelectorAll('[tabindex]').length === 0;
       },
+      metadata: {
+        description: "Garante que não há uso do atributo tabindex na página.",
+      }, metadata: {
+        description: "Garante que o bloco de conteúdo vem antes do menu no HTML.",
+      }
+    },
+    // 1.4.6
+    {
+      id: "check-tabindex-range",
+      evaluate: function (node) {
+        const elements = Array.from(node.querySelectorAll('[tabindex]'));
+    
+        return elements.every(el => {
+          const tabindex = parseInt(el.getAttribute('tabindex'), 10);
+          return tabindex === -1 || (tabindex >= 0 && tabindex <= 32767);
+        });
+      },
+      metadata: {
+        description: "Garante que os valores de tabindex estão no intervalo permitido (-1 ou 0 a 32767).",
+      }
     },
   ];
 
@@ -217,7 +263,7 @@
           "Deve ser fornecida uma descrição para as imagens da página, utilizando-se, para tanto o atributo alt.",
         help: "EMAG 3.1 R3.6.1 - Imagem sem declaração do atributo ALT.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.6",
-      },
+      }
     },
     // 1.5
     {
@@ -234,7 +280,7 @@
           "Deve haver âncoras acessíveis no início da página que permitam pular para blocos de conteúdo como menu, conteúdo principal e busca.",
         help: "EMAG 3.1 R1.5 - Falta de âncoras acessíveis.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
-      },
+      }
     },
     // 1.1.3
     {
@@ -251,7 +297,7 @@
           "Evitar o uso de CSS inline. Respeite os padrões Web HTML. Utilize folhas de estilo externas.",
         help: "EMAG 3.1 R1.1.3 - Presença de CSS(s) in-line.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
-      },
+      }
     },
     // 1.1.4
     {
@@ -268,7 +314,7 @@
           "Evitar o uso de CSS interno. Respeite os padrões Web HTML. Utilize folhas de estilo externas.",
         help: "EMAG 3.1 R1.1.4 - Presença de CSS(s) interno.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
-      },
+      }
     },
     // 1.1.5
     {
@@ -286,7 +332,7 @@
           "Evitar o uso de JavaScript inline em atributos de evento. Utilize arquivos JavaScript externos.",
         help: "EMAG 3.1 R1.1.5 - Presença de javascript(s) in-line.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
-      },
+      }
     },
     // 1.1.6
     {
@@ -303,7 +349,7 @@
           "Evitar o uso de JavaScript interno. Utilize arquivos JavaScript externos sempre que possível.",
         help: "EMAG 3.1 R1.1.6 - Presença de javascript(s) interno.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
-      },
+      }
     },
     //1.3.1
     {
@@ -320,7 +366,7 @@
           "Verifica se a página contém pelo menos um cabeçalho (<h1> até <h6>), conforme o eMAG 3.1 R1.3.1.",
         help: "EMAG 3.1 R1.3.1 - Presença de javascript(s) in-line. Inclua pelo menos um cabeçalho (<h1> até <h6>) na página.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.3",
-      },
+      }
     },
     // 1.3.2
     {
@@ -337,10 +383,9 @@
           "Verifica se a hierarquia dos cabeçalhos está correta (não há pulos de nível).",
         help: "EMAG 3.1 R1.3.2 Use cabeçalhos de forma sequencial, sem pular níveis (ex.: <h2> só depois de <h1>).",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.3",
-      },
+      }
     },
     // 1.3.4
-
     {
       id: "emag-only-h1",
       selector: "body",
@@ -355,11 +400,9 @@
           "Verifica se foi usado apenas <h1> sem outros níveis de cabeçalho.",
         help: "EMAG 3.1 R1.3.4 Utilize outros níveis de cabeçalho além do <h1> para categorizar os conteúdos.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.3",
-      },
+      }
     },
-
     // 1.3.6
-
     {
       id: "emag-multiple-h1",
       selector: "body",
@@ -373,8 +416,57 @@
         description: "Verifica se há mais de um <h1> na página.",
         help: "EMAG 3.1 R1.3.6 Use apenas um <h1> para definir o título principal da página, existe mais de um (1) <h1> na página.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.3",
-      },
+      }
     },
+    // 1.4.1
+    {
+      id: "emag-content-before-menu",
+      selector: "body",
+      any: ["check-content-before-menu"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "order", "structure"],
+      impact: "minor",
+      metadata: {
+        description: "Verifica se o conteúdo está antes do menu no HTML.",
+        help: "EMAG 3.1 R1.4.1 O bloco de conteúdo deve estar antes do menu no código HTML para garantir a ordem lógica de leitura.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.4",
+      }
+    },
+    // 1.4.3
+    {
+      id: "emag-tabindex-presence",
+      selector: "body",
+      any: ["check-tabindex-presence"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "tabindex", "order"],
+      impact: "minor",
+      metadata: {
+        description: "Verifica se há uso do atributo tabindex.",
+        help: "EMAG 3.1 R1.4.3 O uso do atributo tabindex deve ser evitado, pois pode interferir na ordem natural de navegação.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.4",
+      }
+    },
+
+    // 1.4.6
+    {
+      id: "emag-tabindex-range",
+      selector: "body",
+      any: ["check-tabindex-range"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "tabindex", "order"],
+      impact: "minor",
+      metadata: {
+        description: "Verifica se há tabindex fora do intervalo permitido (-1 ou 0 até 32767).",
+        help: "EMAG 3.1 R1.4.6 O atributo tabindex não deve possuir valores menores que -1 ou maiores que 32767.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.4",
+      }
+    }
   ];
 
   axe.configure({
