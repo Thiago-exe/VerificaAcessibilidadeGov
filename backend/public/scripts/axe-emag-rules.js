@@ -138,6 +138,67 @@
         return node.tagName.toLowerCase() === "script";
       },
     },
+    // 1.3.1
+    {
+      id: "check-has-heading",
+      evaluate: function (node) {
+        const hasHeading =
+          node.querySelector("h1, h2, h3, h4, h5, h6") !== null;
+        return hasHeading;
+      },
+      metadata: {
+        description: "Verifica se existe pelo menos um cabeçalho na página.",
+      },
+    },
+    // 1.3.2
+    {
+      id: "check-heading-hierarchy",
+      evaluate: function (node) {
+        const headings = node.querySelectorAll("h1, h2, h3, h4, h5, h6");
+        let currentLevel = 0;
+
+        for (const heading of headings) {
+          const level = parseInt(heading.tagName[1]);
+
+          if (level > currentLevel + 1) {
+            return false; // Pulo de nível detectado
+          }
+
+          currentLevel = level;
+        }
+
+        return true; // Hierarquia correta
+      },
+      metadata: {
+        description:
+          "Garante que os cabeçalhos seguem uma hierarquia sequencial adequada.",
+      },
+    },
+    // 1.3.4
+    {
+      id: "check-only-h1",
+      evaluate: function (node) {
+        const h1 = node.querySelectorAll("h1").length;
+        const others = node.querySelectorAll("h2, h3, h4, h5, h6").length;
+
+        return !(h1 > 0 && others === 0);
+      },
+      metadata: {
+        description:
+          "Garante que existem outros níveis além de <h1> se <h1> estiver presente.",
+      },
+    },
+    // 1.3.6
+    {
+      id: "check-multiple-h1",
+      evaluate: function (node) {
+        const h1Count = node.querySelectorAll("h1").length;
+        return h1Count <= 1;
+      },
+      metadata: {
+        description: "Garante que não existam múltiplos <h1> na página.",
+      },
+    },
   ];
 
   const emagRules = [
@@ -242,6 +303,76 @@
           "Evitar o uso de JavaScript interno. Utilize arquivos JavaScript externos sempre que possível.",
         help: "EMAG 3.1 R1.1.6 - Presença de javascript(s) interno.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
+      },
+    },
+    //1.3.1
+    {
+      id: "emag-has-heading",
+      selector: "html",
+      any: ["check-has-heading"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "heading"],
+      impact: "serious",
+      metadata: {
+        description:
+          "Verifica se a página contém pelo menos um cabeçalho (<h1> até <h6>), conforme o eMAG 3.1 R1.3.1.",
+        help: "EMAG 3.1 R1.3.1 - Presença de javascript(s) in-line. Inclua pelo menos um cabeçalho (<h1> até <h6>) na página.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.3",
+      },
+    },
+    // 1.3.2
+    {
+      id: "emag-heading-hierarchy",
+      selector: "body",
+      any: ["check-heading-hierarchy"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "heading"],
+      impact: "serious",
+      metadata: {
+        description:
+          "Verifica se a hierarquia dos cabeçalhos está correta (não há pulos de nível).",
+        help: "EMAG 3.1 R1.3.2 Use cabeçalhos de forma sequencial, sem pular níveis (ex.: <h2> só depois de <h1>).",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.3",
+      },
+    },
+    // 1.3.4
+
+    {
+      id: "emag-only-h1",
+      selector: "body",
+      any: ["check-only-h1"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "heading"],
+      impact: "moderate",
+      metadata: {
+        description:
+          "Verifica se foi usado apenas <h1> sem outros níveis de cabeçalho.",
+        help: "EMAG 3.1 R1.3.4 Utilize outros níveis de cabeçalho além do <h1> para categorizar os conteúdos.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.3",
+      },
+    },
+
+    // 1.3.6
+
+    {
+      id: "emag-multiple-h1",
+      selector: "body",
+      any: ["check-multiple-h1"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "heading"],
+      impact: "serious",
+      metadata: {
+        description: "Verifica se há mais de um <h1> na página.",
+        help: "EMAG 3.1 R1.3.6 Use apenas um <h1> para definir o título principal da página, existe mais de um (1) <h1> na página.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.3",
       },
     },
   ];
