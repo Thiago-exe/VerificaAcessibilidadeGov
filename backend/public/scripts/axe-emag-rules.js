@@ -272,9 +272,293 @@
         description: "Garante que os valores de tabindex estão no intervalo permitido (-1 ou 0 a 32767).",
       }
     },
+    // 1.6.1
+    {
+      id: "check-table-exists",
+      evaluate: function (node) {
+        return node.querySelectorAll("table").length > 0;
+      },
+      metadata: {
+        description: "Verifica se existe uma tabela na página pra avisar.",
+      }
+    },
+    {
+      id: "check-form-inside-table",
+      evaluate: function (node) {
+        const tables = node.querySelectorAll("table");
+        for (const table of tables) {
+          if (table.querySelector("form")) {
+            return true;
+          }
+        }
+        return false;
+      },
+      metadata: {
+        description: "Verifica se há formulário dentro de uma tabela.",
+      }
+    },
+    // 1.7.1
+    {
+      id: "check-adjacent-links-without-separation",
+      evaluate: function (node) {
+        const links = Array.from(node.querySelectorAll("a"));
+        for (let i = 0; i < links.length - 1; i++) {
+          const current = links[i];
+          const next = links[i + 1];
+    
+          // Verifica se os dois links são irmãos diretos
+          if (current.parentElement === next.parentElement) {
+            const children = Array.from(current.parentElement.childNodes);
+            const currentIndex = children.indexOf(current);
+            const nextIndex = children.indexOf(next);
+    
+            if (nextIndex === currentIndex + 1) {
+              // Verifica se há texto separando os links
+              const between = children.slice(currentIndex + 1, nextIndex);
+              const hasSeparator = between.some(node => {
+                return (
+                  (node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "") ||
+                  (node.nodeType === Node.ELEMENT_NODE && node.tagName.toLowerCase() !== "a")
+                );
+              });
+    
+              if (!hasSeparator) {
+                return true; // Encontrou links adjacentes sem separação
+              }
+            }
+          }
+        }
+        return false;
+      },
+      metadata: {
+        description: "Verifica se há links adjacentes sem separação textual ou por elementos.",
+      }
+    },
+    //1.8.1
+    {
+      id: "check-semantic-landmarks-missing",
+      evaluate: function (node) {
+        const landmarks = ["header", "footer", "section", "aside", "nav", "article"];
+        return !landmarks.some(tag => node.querySelector(tag));
+      },
+      metadata: {
+        description: "Garante que há ausência total de landmarks semânticas (header, footer, section, aside, nav, article).",
+      }
+    },
+    {
+      id: "check-link-target-blank",
+      evaluate: function (node) {
+        const links = node.querySelectorAll('a[target="_blank"]');
+        return links.length > 0;
+      },
+      metadata: {
+        description: "Verifica se há links com target='_blank', que abrem em nova aba ou janela.",
+      }
+    },
+    // 2.1.2
+    {
+      id: "check-mouse-only-events",
+      evaluate: function (node) {
+        const mouseEvents = ["onmousedown", "onmouseup", "onmouseover", "onmouseout"];
+        const keyboardEvents = ["onkeydown", "onkeyup", "onkeypress", "onfocus", "onblur"];
+    
+        const elements = node.querySelectorAll("*");
+        let hasMouseEventWithoutKeyboard = false;
+    
+        elements.forEach(el => {
+          const hasMouse = mouseEvents.some(ev => el.hasAttribute(ev));
+          const hasKeyboard = keyboardEvents.some(ev => el.hasAttribute(ev));
+          if (hasMouse && !hasKeyboard) {
+            hasMouseEventWithoutKeyboard = true;
+          }
+        });
+    
+        return !hasMouseEventWithoutKeyboard;
+      },
+      metadata: {
+        description: "Garante que funcionalidades controladas por mouse também estejam disponíveis por teclado.",
+      }
+    },
+    // 2.1.6
+    {
+      id: "check-dblclick-event",
+      evaluate: function (node) {
+        const elements = node.querySelectorAll("[ondblclick]");
+        return elements.length === 0;
+      },
+      metadata: {
+        description: "Verifica se não há uso do evento ondblclick no HTML.",
+      }
+    },
+    //2.1.8
+    {
+      id: "check-event-on-non-interactive",
+      evaluate: function (node) {
+        const interactiveTags = [
+          "a", "button", "input", "textarea", "select", "label", "option", "details", "summary"
+        ];
+    
+        const eventAttributes = [
+          "onclick", "ondblclick", "onmousedown", "onmouseup", "onmouseover", "onmouseout",
+          "onkeydown", "onkeyup", "onkeypress", "onfocus", "onblur", "onchange"
+        ];
+    
+        const elements = node.querySelectorAll("*");
+        let hasInvalidEvent = false;
+    
+        elements.forEach(el => {
+          const tagName = el.tagName.toLowerCase();
+          const isInteractive = interactiveTags.includes(tagName);
+    
+          const hasEvent = eventAttributes.some(ev => el.hasAttribute(ev));
+    
+          if (!isInteractive && hasEvent) {
+            hasInvalidEvent = true;
+          }
+        });
+    
+        return !hasInvalidEvent;
+      },
+      metadata: {
+        description: "Garante que eventos não estejam aplicados a elementos não interativos.",
+      }
+    }
+    
+    
+    
+    
   ];
 
   const emagRules = [
+    // 2.1.8
+    {
+      id: "emag-event-on-non-interactive",
+      selector: "body",
+      any: ["check-event-on-non-interactive"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "interaction"],
+      impact: "serious",
+      metadata: {
+        description: "Verifica se há eventos aplicados a elementos não interativos, o que prejudica a acessibilidade.",
+        help: "EMAG 3.1 R2.1.8 - Eventos devem ser aplicados apenas a elementos interativos.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r2.1",
+      }
+    },
+    //2.1.6
+    {
+      id: "emag-dblclick-event",
+      selector: "body",
+      any: ["check-dblclick-event"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "interaction"],
+      impact: "moderate",
+      metadata: {
+        description: "Garante que não haja uso do evento ondblclick, que não é acessível para teclado.",
+        help: "EMAG 3.1 R2.1.6 - Evite o uso de eventos ondblclick que não possuem equivalência natural no teclado.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r2.1",
+      }
+    },
+    
+    // 2.1.2
+    {
+      id: "emag-mouse-only-events",
+      selector: "body",
+      any: ["check-mouse-only-events"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "interaction"],
+      impact: "serious",
+      metadata: {
+        description: "Verifica se há funcionalidades disponíveis apenas pelo mouse, sem equivalentes para teclado.",
+        help: "EMAG 3.1 R2.1.2 - Toda funcionalidade deve estar disponível pelo teclado.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r2.1",
+      }
+    },    
+    // 1.9.1
+    {
+      id: "emag-link-target-blank",
+      selector: "body",
+      any: ["check-link-target-blank"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "link"],
+      impact: "moderate",
+      metadata: {
+        description: "Verifica se há links que abrem em nova aba ou janela utilizando target='_blank'.",
+        help: "EMAG 3.1 R1.9.1 - Informar aos usuários quando um link abre em nova aba ou janela utilizando target='_blank'.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.9",
+      }
+    },    
+    //1.8.3
+    {
+      id: "emag-semantic-landmarks-exist",
+      selector: "body",
+      any: ["check-semantic-landmarks-exist"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "semantics"],
+      impact: "moderate",
+      metadata: {
+        description: "Verifica se há ausência de landmarks semânticas HTML5 como header, footer, section, aside, nav ou article.",
+        help: "EMAG 3.1 R1.8.3 - Utilize landmarks semânticas (header, footer, section, aside, nav, article) para estruturar o conteúdo.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.8",
+      }
+    },
+    // 1.7.1
+    {
+      id: "emag-adjacent-links-without-separation",
+      selector: "body",
+      any: ["check-adjacent-links-without-separation"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "link"],
+      impact: "serious",
+      metadata: {
+        description: "Verifica se há links adjacentes sem separação textual ou por elementos.",
+        help: "EMAG 3.1 R1.7.1 - Links adjacentes devem ter separação, seja por texto (ex: ' | ' ou ' / ') ou por elementos (ex: <span>, <li>).",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.7",
+      }
+    },
+    // 1.6.2
+    {
+      id: "emag-form-inside-table",
+      selector: "body",
+      any: ["check-form-inside-table"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "form", "table"],
+      impact: "serious",
+      metadata: {
+        description: "Verifica se há formulário dentro de uma tabela.",
+        help: "EMAG 3.1 R1.6.2 - Não utilize formulário dentro de tabela. Isso prejudica a acessibilidade e a leitura dos elementos.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.6",
+      }
+    },
+    // 1.6.1
+    {
+      id: "emag-table-exists",
+      selector: "body",
+      any: ["check-table-exists"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "table"],
+      impact: "moderate",
+      metadata: {
+        description: "Verifica se existem tabelas na página.",
+        help: "EMAG 3.1 R1.6.1 - Foram utilizadas tabelas na página. Evite usar tabelas para layout, use apenas para dados tabulares.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.6",
+      }
+    },
     // 3.6.1
     {
       id: "img-sem-alt-emag",
