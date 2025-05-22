@@ -98,6 +98,46 @@
         return node.tagName.toLowerCase() === "style";
       },
     },
+    // Presença de JavaScript inline
+    {
+      id: "js-inline-check",
+      evaluate: function (node) {
+        const eventAttributes = [
+          "onload",
+          "onunload",
+          "onblur",
+          "onchange",
+          "onfocus",
+          "onsearch",
+          "onselect",
+          "onsubmit",
+          "onkeydown",
+          "onkeypress",
+          "onkeyup",
+          "onclick",
+          "ondblclick",
+          "onmousedown",
+          "onmousemove",
+          "onmouseout",
+          "onmouseover",
+          "onmouseup",
+          "onmousewheel",
+          "oncopy",
+          "oncut",
+          "onpaste",
+          "onabort",
+        ];
+
+        return eventAttributes.some((attr) => node.hasAttribute(attr));
+      },
+    },
+    // Presença de JavaScript interno
+    {
+      id: "js-internal-check",
+      evaluate: function (node) {
+        return node.tagName.toLowerCase() === "script";
+      },
+    },
   ];
 
   const emagRules = [
@@ -162,6 +202,39 @@
         description:
           "Evitar o uso de CSS interno. Respeite os padrões Web HTML. Utilize folhas de estilo externas.",
         help: "EMAG 3.1 R1.1.4 - Presença de CSS(s) interno.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
+      },
+    },
+    {
+      id: "js-inline",
+      selector:
+        "[onload], [onunload], [onblur], [onchange], [onfocus], [onsearch], [onselect], [onsubmit], [onkeydown], [onkeypress], [onkeyup], [onclick], [ondblclick], [onmousedown], [onmousemove], [onmouseout], [onmouseover], [onmouseup], [onmousewheel], [oncopy], [oncut], [onpaste], [onabort]",
+      any: ["js-inline-check"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "padrões", "html", "javascript"],
+      impact: "minor",
+      metadata: {
+        description:
+          "Evitar o uso de JavaScript inline em atributos de evento. Utilize arquivos JavaScript externos.",
+        help: "EMAG 3.1 R1.1.5 - Presença de javascript(s) in-line.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
+      },
+    },
+    {
+      id: "js-internal",
+      selector: "script",
+      any: ["js-internal-check"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "padrões", "html", "javascript"],
+      impact: "minor",
+      metadata: {
+        description:
+          "Evitar o uso de JavaScript interno. Utilize arquivos JavaScript externos sempre que possível.",
+        help: "EMAG 3.1 R1.1.6 - Presença de javascript(s) interno.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
       },
     },
