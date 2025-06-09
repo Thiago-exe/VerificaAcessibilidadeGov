@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-function DropdownAcessibilidade({ titulo, itens, cor }) {
+function DropdownAcessibilidade({ titulo, itens }) {
   const [aberto, setAberto] = useState(false);
 
   if (!itens || itens.length === 0) return null;
@@ -41,12 +41,15 @@ function DropdownAcessibilidade({ titulo, itens, cor }) {
                 <h3 style={{ color: "#4fc3f7", wordBreak: "break-word" }}>
                   {item.id} - {item.help}
                 </h3>
+
                 <p style={{ wordBreak: "break-word" }}>
                   <strong>Descrição:</strong> {item.description}
                 </p>
+
                 <p>
                   <strong>Impacto:</strong> {item.impact}
                 </p>
+
                 <p>
                   <strong>Ajuda:</strong>{" "}
                   <a
@@ -67,101 +70,134 @@ function DropdownAcessibilidade({ titulo, itens, cor }) {
 
                 {item.nodes &&
                   item.nodes.map((node, j) => (
-                    <div
-                      key={j}
-                      style={{
-                        marginTop: "1rem",
-                        padding: "1rem",
-                        backgroundColor: "#1e1e1e",
-                        borderRadius: "0.5rem",
-                        border: "1px solid #444",
-                        overflowX: "auto",
-                      }}
-                    >
-                      <p>
-                        <strong>Alvo:</strong>{" "}
-                        <code style={{ wordBreak: "break-all" }}>
-                          {node.target.join(", ")}
-                        </code>
-                      </p>
-
-                      {node.failureSummary && (
-                        <p style={{ wordBreak: "break-word" }}>
-                          <strong>Resumo da Falha:</strong>{" "}
-                          {node.failureSummary}
-                        </p>
-                      )}
-
-                      {node.html && (
-                        <div>
-                          <strong>HTML:</strong>
-                          <pre
-                            style={{
-                              backgroundColor: "#111",
-                              padding: "0.5rem",
-                              borderRadius: "5px",
-                              overflowX: "auto",
-                              marginTop: "0.5rem",
-                              whiteSpace: "pre-wrap",
-                              wordBreak: "break-word",
-                            }}
-                          >
-                            {node.html}
-                          </pre>
-                        </div>
-                      )}
-
-                      {node.any?.length > 0 && (
-                        <div>
-                          <strong>Um ou mais dos quesitos a seguir não foi cumprido:</strong>
-                          <ul>
-                            {node.any.map((check, k) => (
-                              <li key={k}>{check.message}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {node.all?.length > 0 && (
-                        <div>
-                          <strong>Todos os quesitos a seguir devem ser cumpridos:</strong>
-                          <ul>
-                            {node.all.map((check, k) => (
-                              <li key={k}>{check.message}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {node.none?.length > 0 && (
-                        <div>
-                          <strong>Nenhum dos quesitos a seguir é aprovado:</strong>
-                          <ul>
-                            {node.none.map((check, k) => (
-                              <li key={k}>{check.message}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-
-                      {node.screenshot && (
-                        <div style={{ marginTop: "0.5rem" }}>
-                          <img
-                            src={node.screenshot}
-                            alt="Screenshot do elemento"
-                            style={{
-                              maxWidth: "100%",
-                              border: "2px solid red",
-                              borderRadius: "8px",
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
+                    <DropdownNode key={j} node={node} titulo={item.help} />
                   ))}
               </li>
             ))}
           </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DropdownNode({ node, titulo }) {
+  const [aberto, setAberto] = useState(false);
+
+  return (
+    <div style={{ marginBottom: "1rem" }}>
+      <button
+        onClick={() => setAberto(!aberto)}
+        style={{
+          backgroundColor: "#444",
+          color: "white",
+          padding: "0.5rem 0.75rem",
+          border: "none",
+          borderRadius: "0.5rem",
+          width: "100%",
+          textAlign: "left",
+          fontSize: "1rem",
+          cursor: "pointer",
+        }}
+      >
+        {titulo} - {node.target?.join(", ")} {aberto ? "▲" : "▼"}
+      </button>
+
+      {aberto && (
+        <div
+          style={{
+            marginTop: "0.5rem",
+            backgroundColor: "#1e1e1e",
+            padding: "1rem",
+            borderRadius: "0.5rem",
+            border: "1px solid #444",
+            overflowX: "auto",
+          }}
+        >
+          <p>
+            <strong>Alvo:</strong>{" "}
+            <code style={{ wordBreak: "break-all" }}>
+              {node.target.join(", ")}
+            </code>
+          </p>
+
+          {node.failureSummary && (
+            <p style={{ wordBreak: "break-word" }}>
+              <strong>Resumo da Falha:</strong> {node.failureSummary}
+            </p>
+          )}
+
+          {node.html && (
+            <div>
+              <strong>HTML:</strong>
+              <pre
+                style={{
+                  backgroundColor: "#111",
+                  padding: "0.5rem",
+                  borderRadius: "5px",
+                  overflowX: "auto",
+                  marginTop: "0.5rem",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                }}
+              >
+                {node.html}
+              </pre>
+            </div>
+          )}
+
+          {node.any?.length > 0 && (
+            <div>
+              <strong>
+                Um ou mais dos quesitos a seguir não foi cumprido:
+              </strong>
+              <ul>
+                {node.any.map((check, k) => (
+                  <li key={k}>{check.message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {node.all?.length > 0 && (
+            <div>
+              <strong>
+                Todos os quesitos a seguir devem ser cumpridos:
+              </strong>
+              <ul>
+                {node.all.map((check, k) => (
+                  <li key={k}>{check.message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {node.none?.length > 0 && (
+            <div>
+              <strong>
+                Nenhum dos quesitos a seguir é aprovado:
+              </strong>
+              <ul>
+                {node.none.map((check, k) => (
+                  <li key={k}>{check.message}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {node.screenshot && (
+            <div style={{ marginTop: "0.5rem" }}>
+              <img
+                src={node.screenshot}
+                alt="Screenshot do elemento"
+                style={{
+                  maxWidth: "100%",
+                  border: "2px solid red",
+                  borderRadius: "8px",
+                }}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

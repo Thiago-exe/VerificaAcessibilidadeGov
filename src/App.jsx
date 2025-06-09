@@ -6,6 +6,15 @@ function App() {
   const [resultados, setResultados] = useState(null);
   const [carregando, setCarregando] = useState(false);
 
+  const filtrarRegrasEmag = (itens) => {
+    if (!itens) return [];
+    return itens.filter(
+      (item) =>
+        item.tags?.includes("emag") ||
+        item.id?.toLowerCase().includes("emag")
+    );
+  };
+
   const testarUrl = async () => {
     setCarregando(true);
     setResultados(null);
@@ -99,7 +108,7 @@ function App() {
           {/* LISTAS */}
           <DropdownAcessibilidade
             titulo="❌ Erros"
-            itens={resultados.violations}
+            itens={filtrarRegrasEmag(resultados.violations)}
             cor="bg-red-100 text-red-800"
           />
           <DropdownAcessibilidade
