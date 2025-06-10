@@ -1,3 +1,4 @@
+// INICIO DOS CHECKS (TESTES)
 (() => {
   const emagChecks = [
     // Alt nas imagens
@@ -230,31 +231,50 @@
         description: "Garante que não existam múltiplos <h1> na página.",
       },
     },
-    // 1.4.1
+    // 1.4.1 VERIFICAR TESTAR
     {
       id: "check-content-before-menu",
-      evaluate: function (node) {
-        const contentSelectors = [
-          "main",
-          "#content",
-          "#wrapper",
-          '[role="main"]',
-        ];
-        const menuSelectors = ["nav", "#menu", '[role="navigation"]'];
-
-        const content = node.querySelector(contentSelectors.join(","));
-        const menu = node.querySelector(menuSelectors.join(","));
-
-        if (!content || !menu) {
-          return true; // Se não existe um dos dois, não se aplica
-        }
-
-        const position = content.compareDocumentPosition(menu);
-
-        return (position & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+      evaluate: function(node) {
+        const contentSelectors = ["main", "#content", "#main", '[role="main"]'];
+        const menuSelectors = ["nav", "#menu", "#navigation", '[role="navigation"]'];
+    
+        const content = document.querySelector(contentSelectors.join(","));
+        const menu = document.querySelector(menuSelectors.join(","));
+    
+        if (!content || !menu) return undefined;
+    
+        const isContentFirst = content.compareDocumentPosition(menu) & Node.DOCUMENT_POSITION_FOLLOWING;
+    
+        // Retorna objeto com dados para relatedNodes
+        return {
+          result: !!isContentFirst,
+          data: {
+            contentHtml: content.outerHTML,
+            menuHtml: menu.outerHTML,
+            contentSelector: axe.utils.getSelector(content),
+            menuSelector: axe.utils.getSelector(menu)
+          }
+        };
       },
+      metadata: {
+        description: "Verifica se o conteúdo principal precede o menu no DOM.",
+        help: "EMAG 1.4.1 - Conteúdo principal deve vir antes do menu no HTML.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.4.1",
+        relatedNodes: function(node, options, result) {
+          return [
+            { 
+              html: result.data.contentHtml,
+              target: [result.data.contentSelector] 
+            },
+            { 
+              html: result.data.menuHtml,
+              target: [result.data.menuSelector] 
+            }
+          ];
+        }
+      }
     },
-    // 1.4.3
+    // 1.4.3 CHECK
     {
       id: "check-tabindex-presence",
       evaluate: function (node) {
@@ -284,36 +304,68 @@
           "Garante que os valores de tabindex estão no intervalo permitido (-1 ou 0 a 32767).",
       },
     },
-    // 1.6.1
+    // 1.6.1 TESTAR
     {
-      id: "check-table-exists",
-      evaluate: function (node) {
-        return node.querySelectorAll("table").length > 0;
+      id: "emag-table-presence",
+      evaluate: function (node, options, virtualNode) {
+        // Versão simplificada que não depende do context
+        const tables = node.querySelectorAll("table");
+
+        if (tables.length === 0) {
+          return true; // Passa se não houver tabelas
+        }
+
+        // Armazena os seletores diretamente no nó
+        return {
+          result: false,
+          data: {
+            tables: Array.from(tables).map((table) => ({
+              selector: axe.utils.getSelector(table),
+              html:
+                table.outerHTML.substring(0, 100) +
+                (table.outerHTML.length > 100 ? "..." : ""),
+            })),
+          },
+        };
       },
       metadata: {
-        description: "Verifica se existe uma tabela na página pra avisar.",
+        description: "Identifica todas as tabelas presentes na página.",
+        help: "EMAG 1.6.1 - Tabelas devem ser marcadas corretamente",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.6.1",
+        messages: {
+          pass: "Nenhuma tabela encontrada na página.",
+          fail: "Tabela(s) encontrada(s) - verifique marcação semântica",
+        },
       },
     },
+    //1.6.2 TESTAR
     {
       id: "check-form-inside-table",
       evaluate: function (node) {
+        const results = [];
         const tables = node.querySelectorAll("table");
+
         for (const table of tables) {
-          if (table.querySelector("form")) {
-            return true;
+          const forms = table.querySelectorAll("form");
+          for (const form of forms) {
+            results.push(form); // aponta o <form> diretamente
           }
         }
-        return false;
+
+        return results.length > 0 ? results : false;
       },
       metadata: {
-        description: "Verifica se há formulário dentro de uma tabela.",
+        description:
+          "Verifica se há formulários dentro de tabelas (uso estrutural inadequado de HTML).",
       },
     },
     // 1.7.1
     {
       id: "check-adjacent-links-without-separation",
       evaluate: function (node) {
+        const results = [];
         const links = Array.from(node.querySelectorAll("a"));
+
         for (let i = 0; i < links.length - 1; i++) {
           const current = links[i];
           const next = links[i + 1];
@@ -325,7 +377,7 @@
             const nextIndex = children.indexOf(next);
 
             if (nextIndex === currentIndex + 1) {
-              // Verifica se há texto separando os links
+              // Verifica se há separação entre os links
               const between = children.slice(currentIndex + 1, nextIndex);
               const hasSeparator = between.some((node) => {
                 return (
@@ -337,16 +389,19 @@
               });
 
               if (!hasSeparator) {
-                return true; // Encontrou links adjacentes sem separação
+                results.push(current, next); // Adiciona os links problemáticos
               }
             }
           }
         }
-        return false;
+
+        return results.length > 0 ? results : false;
       },
       metadata: {
         description:
           "Verifica se há links adjacentes sem separação textual ou por elementos.",
+        help: "EMAG 3.1 R2.2.3 - Separação entre links adjacentes",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r2.2",
       },
     },
     //1.8.1
@@ -850,7 +905,7 @@
       id: "check-long-link-text",
       evaluate: function (node) {
         const text = node.textContent.trim();
-        return text.length <= 2000;
+        return text.length <= 500;
       },
       metadata: {
         description: "Verifica se o texto do link é muito longo.",
@@ -910,7 +965,7 @@
           "Verifica se imagens informativas possuem atributo alt descritivo.",
       },
     },
-    //3.6.3
+    //3.6.3 CHECK
     {
       id: "check-img-alt-filename",
       evaluate: function (node) {
@@ -954,27 +1009,26 @@
     //3.6.7
     {
       id: "check-img-same-alt-different-src",
-      evaluate: function (node, options, virtualNode, context) {
+      evaluate: function(node) {
         const currentAlt = node.getAttribute("alt") || "";
         const currentSrc = node.getAttribute("src") || "";
-
+    
         if (!currentAlt) return true;
-
-        const images = context.document.querySelectorAll("img[alt]");
-        for (let img of images) {
-          if (
-            img !== node &&
-            img.getAttribute("alt") === currentAlt &&
-            img.getAttribute("src") !== currentSrc
-          ) {
-            return false;
-          }
-        }
-        return true;
+    
+        // Usa document.querySelectorAll diretamente (não precisa de context)
+        const images = document.querySelectorAll("img[alt]");
+        
+        return !Array.from(images).some(img => 
+          img !== node && 
+          img.getAttribute("alt") === currentAlt && 
+          img.getAttribute("src") !== currentSrc
+        );
       },
       metadata: {
         description: "Verifica se imagens com mesmo alt têm src diferente.",
-      },
+        help: "EMAG 3.1 6.6.7 - Imagens diferentes não devem ter o mesmo texto alternativo.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r6.6.7"
+      }
     },
     //3.6.8
     {
@@ -1578,67 +1632,68 @@
     },
   ];
 
+  //INICIO DAS REGRAS (RULES)
   const emagRules = [
-    //6.7.2
+    //6.7.2 CHECK
     {
       id: "emag-optgroup",
       selector: "form",
       any: ["check-optgroup"],
       enabled: true,
       tags: ["emag", "form", "select", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         help: "EMAG 3.1 6.7.2 - Selects com muitas opções devem usar optgroup.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r6.7.2",
       },
     },
-    //6.7.1
+    //6.7.1 CHECK
     {
       id: "emag-fieldset-grouping",
       selector: "form",
       any: ["check-fieldset-grouping"],
       enabled: true,
       tags: ["emag", "form", "grouping", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         help: "EMAG 3.1 6.7.1 - Formulários complexos devem usar fieldset para agrupamento.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r6.7.1",
       },
     },
-    //6.4.2
+    //6.4.2 CHECK
     {
       id: "emag-form-mouse-events",
       selector: "form",
       any: ["check-form-mouse-events"],
       enabled: true,
       tags: ["emag", "form", "mouse", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         help: "EMAG 3.1 6.4.2 - Evitar eventos de mouse/drag exclusivos que prejudicam usuários de teclado.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r6.4.2",
       },
     },
-    //6.4.1
+    //6.4.1 CHECK
     {
       id: "emag-form-keyboard-events",
       selector: "form",
       any: ["check-form-keyboard-events"],
       enabled: true,
       tags: ["emag", "form", "keyboard", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         help: "EMAG 3.1 6.4.1 - Evitar eventos de teclado/foco que podem prejudicar a acessibilidade.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r6.4.1",
       },
     },
-    // 6.3.1
+    // 6.3.1 CHECK
     {
       id: "emag-form-tabindex",
       selector: "form",
       any: ["check-form-tabindex"],
       enabled: true,
       tags: ["emag", "form", "keyboard", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         help: "EMAG 3.1 6.3.1 - Evitar tabindex desnecessário em elementos de formulário.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r6.3.1",
@@ -1648,7 +1703,7 @@
         },
       },
     },
-    // 6.2.1
+    // 6.2.1 CHECK
     {
       id: "emag-input-label",
       selector:
@@ -1656,7 +1711,7 @@
       any: ["check-input-label"],
       enabled: true,
       tags: ["emag", "form", "label", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 6.2.1 - Campos de formulário devem ter labels associados.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r6.2.1",
@@ -1666,14 +1721,14 @@
         },
       },
     },
-    //5.4.1
+    //5.4.1 CHECK
     {
       id: "emag-audio-content-presence",
       selector: "html",
       any: ["check-audio-content-presence"],
       enabled: true,
       tags: ["emag", "media", "audio", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         help: "EMAG 3.1 5.4.1 - Áudios devem ter transcrição textual alternativa.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r5.4.1",
@@ -1698,14 +1753,14 @@
         },
       },
     },
-    //5.3.1
+    //5.3.1 CHECK
     {
       id: "emag-video-content-presence",
       selector: "html",
       any: ["check-video-content-presence"],
       enabled: true,
       tags: ["emag", "media", "video", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         help: "EMAG 3.1 5.3.1 - Vídeos devem ter recursos de acessibilidade.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r5.3.1",
@@ -1720,32 +1775,33 @@
         },
       },
     },
-    //5.2.1
+    //5.2.1 CHECK
     {
       id: "emag-audio-presence",
       selector: "html",
       any: ["check-audio-presence"],
       enabled: true,
       tags: ["emag", "media", "audio", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         help: "EMAG 3.1 5.2.1 - Páginas contendo áudio devem fornecer alternativas acessíveis.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r5.2.1",
       },
     },
-    //5.1.1
+    //5.1.1 CHECK
     {
       id: "emag-video-presence",
       selector: "html",
       any: ["check-video-presence"],
       enabled: true,
       tags: ["emag", "media", "video", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         help: "EMAG 3.1 5.1.1 - Páginas contendo vídeos devem fornecer alternativas acessíveis.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r5.1.1",
       },
     },
+    // 4.4.1.2 CHECK
     {
       id: "emag-focus-visible-explicit",
       selector:
@@ -1753,14 +1809,14 @@
       any: ["check-focus-visible-styles"],
       enabled: true,
       tags: ["emag", "focus", "keyboard", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 4.4.1 - Elementos devem ter estilo visível com :focus-visible.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r4.4.1",
         techniques: ["C15", "G195"],
       },
     },
-    // 4.4.1
+    // 4.4.1.1 CHECK
     {
       id: "emag-focus-visible",
       selector:
@@ -1768,13 +1824,13 @@
       any: ["check-focus-visible"],
       enabled: true,
       tags: ["emag", "focus", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 4.4.1 - Elementos focalizáveis devem ter estilo de foco visível.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r4.4.1",
       },
     },
-    // 4.1.2
+    // 4.1.2 ???
     {
       id: "emag-color-contrast",
       selector: "*",
@@ -1788,131 +1844,131 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r4.1.2",
       },
     },
-    // 3.12.1
+    // 3.12.1 CHECK
     {
       id: "emag-abbr-title",
       selector: "abbr, acronym",
       any: ["check-abbr-title"],
       enabled: true,
       tags: ["emag", "text", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 3.12.1 - Siglas devem ter atributo title explicativo.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.12.1",
       },
     },
-    // 3.11.3
+    // 3.11.3 CHECK
     {
       id: "emag-justified-css",
       selector: "p",
       any: ["check-justified-css"],
       enabled: true,
       tags: ["emag", "text", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 3.11.3 - Evitar text-align: justify em parágrafos.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.11.3",
       },
     },
-    // 3.11.2
+    // 3.11.2 CHECK
     {
       id: "emag-justified-align-attribute",
       selector: "p[align]",
       any: ["check-justified-align-attribute"],
       enabled: true,
       tags: ["emag", "text", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 3.11.2 - Evitar parágrafos com align='justify'.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.11.2",
       },
     },
-    // 3.10.1
+    // 3.10.1 CHECK
     {
       id: "emag-table-cell-association",
       selector: "table",
       any: ["check-table-cell-association"],
       enabled: true,
       tags: ["emag", "table", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 3.10.1 - Tabelas devem ter células associadas via headers, scope ou estrutura semântica.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.10.1",
       },
     },
-    // 3.9.1
+    // 3.9.1 CHECK
     {
       id: "emag-table-caption-summary",
       selector: "table",
       any: ["check-table-caption-summary"],
       enabled: true,
       tags: ["emag", "table", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         help: "EMAG 3.1 3.9.1 - Tabelas de dados devem ter caption ou summary.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.9.1",
       },
     },
-    // 3.7.1
+    // 3.7.1 CHECK
     {
       id: "emag-image-map-alt",
       selector: "img[usemap], area[href]",
       any: ["check-image-map-alt"],
       enabled: true,
       tags: ["emag", "image", "map", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 3.7.1 - Mapas de imagem devem ter descrição alternativa.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.7.1",
       },
     },
-    //3.6.8
+    //3.6.8 CHECK
     {
       id: "emag-img-duplicate-alt-title",
       selector: "img[alt][title]",
       any: ["check-img-duplicate-alt-title"],
       enabled: true,
       tags: ["emag", "image", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 3.6.8 - Evitar alt e title com o mesmo conteúdo.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.6.8",
       },
     },
-    //3.6.7
+    //3.6.7 CHECK
     {
       id: "emag-img-same-alt-different-src",
       selector: "img[alt][src]",
       any: ["check-img-same-alt-different-src"],
       enabled: true,
       tags: ["emag", "image", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         help: "EMAG 3.1 3.6.7 - Imagens diferentes não devem ter a mesma descrição.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.6.7",
       },
     },
-    // 3.6.4
+    // 3.6.4 CHECK
     {
       id: "emag-img-generic-alt",
       selector: "img[alt]",
       any: ["check-img-generic-alt"],
       enabled: true,
       tags: ["emag", "image", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 3.6.4 - Evitar descrições genéricas no atributo alt.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.6.4",
       },
     },
-    // 3.6.3
+    // 3.6.3 CHECK
     {
       id: "emag-img-alt-filename",
       selector: "img[src][alt]",
       any: ["check-img-alt-filename"],
       enabled: true,
       tags: ["emag", "image", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 3.6.3 - Evitar usar nome do arquivo como texto alternativo.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.6.3",
@@ -1925,13 +1981,13 @@
       any: ["check-img-alt"],
       enabled: true,
       tags: ["emag", "image", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 3.6.2 - Imagens informativas devem ter atributo alt descritivo.",
-        helpUrl: "https://emag.governoeletronico.gov.br/#r3.6.2",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r3.6",
       },
     },
-    // 3.5.15
+    // 3.5.15 ???
     {
       id: "emag-malformed-urls",
       selector: "a[href]",
@@ -1944,72 +2000,74 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
       },
     },
-    // 3.5.14
+    // 3.5.14 CHECK
     {
       id: "emag-broken-links",
       selector: "a[href]",
       any: ["check-broken-links"],
       enabled: true,
       tags: ["emag", "link", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 3.5.14 - Evitar links quebrados (404, 503, etc).",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
       },
     },
-    // 3.5.13
+    // 3.5.13 CHECK
     {
       id: "emag-long-link-text",
       selector: "a[href]",
       any: ["check-long-link-text"],
       enabled: true,
       tags: ["emag", "link", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         help: "EMAG 3.1 3.5.13 - Evitar textos de link muito longos (>2000 chars).",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
       },
     },
-    // 3.5.12
+
+    // 3.5.12 CHECK
     {
       id: "emag-duplicate-title-text",
       selector: "a[href][title]",
       any: ["check-duplicate-title-text"],
       enabled: true,
       tags: ["emag", "link", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 3.5.12 - Evitar title igual ao texto do link.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
       },
     },
-    // 3.5.11
+
+    // 3.5.11 TESTE
     {
       id: "emag-same-text-different-href",
       selector: "a[href]", // Alterado para selector
       any: ["check-same-text-different-href"],
       enabled: true,
       tags: ["emag", "link", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 3.5.11 - Evitar links com mesmo texto para destinos diferentes.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
       },
     },
-    // 3.5.10
+    // 3.5.10 TESTE
     {
       id: "emag-duplicate-href-different-text",
       selector: "a[href]", // Alterado para selector
       any: ["check-duplicate-href-different-text"],
       enabled: true,
       tags: ["emag", "link", "acessibilidade"],
-      impact: "moderate",
+      impact: "serious",
       metadata: {
         help: "EMAG 3.1 3.5.10 - Evitar links com mesmo destino e textos diferentes.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
       },
     },
-    // 3.5.6
+    // 3.5.6 CHECK
     {
       id: "emag-generic-link-text",
       selector: "a[href]",
@@ -2018,14 +2076,14 @@
       none: [],
       enabled: true,
       tags: ["emag", "link", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         description: "Links devem ter textos descritivos e não genéricos.",
         help: "EMAG 3.1 3.5.6 - Evitar textos de link genéricos como 'clique aqui'.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
       },
     },
-    // 3.5.5
+    // 3.5.5 CHECK
     {
       id: "emag-image-link-alt",
       selector: "a[href]",
@@ -2034,14 +2092,14 @@
       none: [],
       enabled: true,
       tags: ["emag", "link", "image", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         description: "Links com imagens devem ter texto alternativo.",
         help: "EMAG 3.1 3.5.5 - Imagens dentro de links devem ter atributo alt descritivo.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
       },
     },
-    // 3.5.4
+    // 3.5.4 CHECK
     {
       id: "emag-title-only-link",
       selector: "a[href][title]",
@@ -2050,14 +2108,14 @@
       none: [],
       enabled: true,
       tags: ["emag", "link", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         description: "Links não devem depender apenas do atributo title.",
         help: "EMAG 3.1 3.5.4 - Evitar links que usam apenas title como descrição.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
       },
     },
-    // 3.5.3
+    // 3.5.3 CHECK
     {
       id: "emag-empty-link",
       selector: "a[href]",
@@ -2066,14 +2124,14 @@
       none: [],
       enabled: true,
       tags: ["emag", "link", "acessibilidade"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         description: "Links não devem estar vazios.",
         help: "EMAG 3.1 3.5.3 - Evitar links sem texto descritivo.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
       },
     },
-    // 3.5.2
+    // 3.5.2 CHECK
     {
       id: "emag-link-url-text",
       selector: "a[href]",
@@ -2082,14 +2140,14 @@
       none: [],
       enabled: true,
       tags: ["emag", "link", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         description: "Links não devem ter URLs como texto descritivo.",
         help: "EMAG 3.1 3.5.2 - Evitar links com texto descritivo em formato de URL.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
       },
     },
-    // 3.3
+    // ?????
     {
       id: "emag-descriptive-title",
       selector: "html",
@@ -2098,13 +2156,14 @@
       none: [],
       enabled: true,
       tags: ["emag", "acessibilidade", "head"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         description: "Verifica se o título da página existe.",
         help: "EMAG 3.1 3.3 - O título da página deve existir.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.3",
       },
     },
+    // 3.3 CHECK
     {
       id: "emag-page-title",
       selector: "html", // Aplica ao documento inteiro
@@ -2113,7 +2172,7 @@
       none: [],
       enabled: true,
       tags: ["emag", "acessibilidade", "head"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         description:
           "Verifica se a página possui um título descritivo e informativo.",
@@ -2121,7 +2180,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.3.1",
       },
     },
-    // 3.2.1
+    // 3.2.1 CHECK
     {
       id: "emag-element-lang",
       selector: "*:not(html):not([lang])", // Todos elementos exceto html, ou com atributo lang explícito
@@ -2130,7 +2189,7 @@
       none: [],
       enabled: true,
       tags: ["emag", "html", "acessibilidade", "i18n"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         description:
           "Verifica se elementos com conteúdo em idioma diferente do principal estão identificados com o atributo lang.",
@@ -2138,7 +2197,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.2",
       },
     },
-    // 3.1.1
+    // 3.1.1 CHECK
     {
       id: "emag-lang-attribute",
       selector: "html",
@@ -2147,7 +2206,7 @@
       none: [],
       enabled: true,
       tags: ["emag", "html", "idioma"],
-      impact: "critical",
+      impact: "serious",
       metadata: {
         description:
           "Identificação do idioma principal da página por meio do atributo lang ou xml:lang conforme o doctype.",
@@ -2155,7 +2214,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.1",
       },
     },
-    // 2.6.1
+    // 2.6.1 CHECK
     {
       id: "emag-no-blink",
       selector: "body",
@@ -2171,7 +2230,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r2.6",
       },
     },
-    // 2.6.2
+    // 2.6.2 CHECK
     {
       id: "emag-no-marquee",
       selector: "body",
@@ -2187,7 +2246,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r2.6",
       },
     },
-    // 2.6.3
+    // 2.6.3 CHECK
     {
       id: "emag-no-animated-gif",
       selector: "body",
@@ -2196,7 +2255,7 @@
       none: [],
       enabled: true,
       tags: ["emag", "html", "imagem", "gif", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         description:
           "Verifica a presença de imagens GIF com intermitência ou movimentação na tela.",
@@ -2204,7 +2263,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r2.6",
       },
     },
-    // 2.4.1
+    // 2.4.1 CHECK
     {
       id: "emag-auto-redirect",
       selector: "body",
@@ -2220,7 +2279,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r2.4",
       },
     },
-    // 2.3.1
+    // 2.3.1 CHECK
     {
       id: "emag-auto-refresh",
       selector: "body",
@@ -2229,14 +2288,14 @@
       none: [],
       enabled: true,
       tags: ["emag", "html", "tempo"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         description: "Verifica se a página possui atualização automática.",
         help: "EMAG 3.1 R2.3.1 - Evitar atualizações automáticas que prejudiquem a navegação dos usuários.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r2.3",
       },
     },
-    // 2.2.4
+    // 2.2.4 CHECK
     {
       id: "emag-applet-has-text",
       selector: "body",
@@ -2245,7 +2304,7 @@
       none: [],
       enabled: true,
       tags: ["emag", "html", "alternatives"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         description:
           "Verifica se os elementos <applet> possuem conteúdo alternativo textual.",
@@ -2253,7 +2312,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r2.2",
       },
     },
-    // 2.2.3
+    // 2.2.3 CHECK
     {
       id: "emag-embed-has-text",
       selector: "body",
@@ -2262,7 +2321,7 @@
       none: [],
       enabled: true,
       tags: ["emag", "html", "alternatives"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         description:
           "Verifica se os elementos <embed> possuem conteúdo alternativo textual.",
@@ -2270,7 +2329,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r2.2",
       },
     },
-    // 2.2.2
+    // 2.2.2 CHECK
     {
       id: "emag-object-has-text",
       selector: "body",
@@ -2287,7 +2346,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r2.2",
       },
     },
-    // 2.2.1
+    // 2.2.1 CHECK
     {
       id: "emag-noscript-with-script",
       selector: "body",
@@ -2304,7 +2363,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r2.2",
       },
     },
-    // 2.1.8
+    // 2.1.8 CHECK
     {
       id: "emag-event-on-non-interactive",
       selector: "body",
@@ -2321,7 +2380,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r2.1",
       },
     },
-    //2.1.6
+    //2.1.6 CHECK
     {
       id: "emag-dblclick-event",
       selector: "body",
@@ -2330,7 +2389,7 @@
       none: [],
       enabled: true,
       tags: ["emag", "html", "interaction"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         description:
           "Garante que não haja uso do evento ondblclick, que não é acessível para teclado.",
@@ -2339,7 +2398,7 @@
       },
     },
 
-    // 2.1.2
+    // 2.1.2 CHECK
     {
       id: "emag-mouse-only-events",
       selector: "body",
@@ -2356,7 +2415,8 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r2.1",
       },
     },
-    // 1.9.1
+
+    // 1.9.1 CHECK
     {
       id: "emag-link-target-blank",
       selector: "body",
@@ -2365,7 +2425,7 @@
       none: [],
       enabled: true,
       tags: ["emag", "html", "link"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         description:
           "Verifica se há links que abrem em nova aba ou janela utilizando target='_blank'.",
@@ -2373,7 +2433,24 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.9",
       },
     },
-    //1.8.3
+    //1.8.1 TESTAR
+    {
+      id: "emag-semantic-landmarks-missing",
+      selector: "body",
+      any: ["check-semantic-landmarks-missing"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "html", "semantics"],
+      impact: "minor",
+      metadata: {
+        description:
+          "Verifica se há ausência de landmarks semânticas HTML5 como header, footer, section, aside, nav ou article.",
+        help: "EMAG 3.1 R1.8.3 - Utilize landmarks semânticas (header, footer, section, aside, nav, article) para estruturar o conteúdo.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.8",
+      },
+    },
+    //1.8.3 TESTAR
     {
       id: "emag-semantic-landmarks-exist",
       selector: "body",
@@ -2382,7 +2459,7 @@
       none: [],
       enabled: true,
       tags: ["emag", "html", "semantics"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         description:
           "Verifica se há ausência de landmarks semânticas HTML5 como header, footer, section, aside, nav ou article.",
@@ -2390,7 +2467,8 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.8",
       },
     },
-    //1.1
+
+    //1.1 DEVE SER IMPLEMENTADO
     {
       id: "emag-html-validation",
       selector: "html",
@@ -2407,7 +2485,7 @@
       },
     },
 
-    // 1.7.1
+    // 1.7.1 TESTAR
     {
       id: "emag-adjacent-links-without-separation",
       selector: "body",
@@ -2424,7 +2502,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.7",
       },
     },
-    // 1.6.2
+    // 1.6.2 TESTAR
     {
       id: "emag-form-inside-table",
       selector: "body",
@@ -2440,7 +2518,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.6",
       },
     },
-    // 1.6.1
+    // 1.6.1 TESTAR
     {
       id: "emag-table-exists",
       selector: "body",
@@ -2449,14 +2527,14 @@
       none: [],
       enabled: true,
       tags: ["emag", "html", "table"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         description: "Verifica se existem tabelas na página.",
         help: "EMAG 3.1 R1.6.1 - Foram utilizadas tabelas na página. Evite usar tabelas para layout, use apenas para dados tabulares.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.6",
       },
     },
-    // 3.6.1
+    // 3.6.1 CHECK
     {
       id: "img-sem-alt-emag",
       selector: "img",
@@ -2473,9 +2551,42 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.6",
       },
     },
-    // 1.5 tem que revisar isso ai talvez precise separar como as outras
+    // 1.5.1 CHECK tem que revisar isso ai talvez precise separar como as outras // precisa separar
     {
       id: "emag-ancoras-bloco",
+      selector: "body",
+      any: ["check-anchor-skip-links-presence"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "barra-acessibilidade", "atalhos"],
+      impact: "serious",
+      metadata: {
+        description:
+          "Deve haver âncoras acessíveis no início da página que permitam pular para blocos de conteúdo como menu, conteúdo principal e busca. É importante ressaltar que o primeiro link da página deve ser o de ir para o conteúdo.",
+        help: "EMAG 3.1 R1.5 - Âncoras acessíveis.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
+      },
+    },
+    //1.5.2 CHECK
+    {
+      id: "emag-ancoras-bloco-existente",
+      selector: "body",
+      any: [],
+      all: ["check-anchor-skip-links-target"],
+      none: [],
+      enabled: true,
+      tags: ["emag", "barra-acessibilidade", "atalhos"],
+      impact: "serious",
+      metadata: {
+        description: "Todas as âncoras devem possuir destinos que existam.",
+        help: "EMAG 3.1 R1.5 - Âncoras acessíveis.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
+      },
+    },
+    // 1.5.3 FAZER
+    {
+      id: "emag-ancoras-",
       selector: "body",
       any: [
         "ancora-para-bloco",
@@ -2484,9 +2595,9 @@
       ],
       all: ["accesskey-unico", "check-anchor-skip-links-target"],
       none: [],
-      enabled: true,
+      enabled: false,
       tags: ["emag", "barra-acessibilidade", "atalhos"],
-      impact: "moderate",
+      impact: "serious",
       metadata: {
         description:
           "Deve haver âncoras acessíveis no início da página que permitam pular para blocos de conteúdo como menu, conteúdo principal e busca. É importante ressaltar que o primeiro link da página deve ser o de ir para o conteúdo.",
@@ -2494,7 +2605,41 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
       },
     },
-    // 1.1.3
+    // 1.5.9 CHECK
+    {
+      id: "emag-ancoras-primeiro-link",
+      selector: "body",
+      any: ["primeiro-link-para-conteudo"],
+      all: [],
+      none: [],
+      enabled: true,
+      tags: ["emag", "barra-acessibilidade", "atalhos"],
+      impact: "minor",
+      metadata: {
+        description:
+          "É importante ressaltar que o primeiro link da página deve ser o de ir para o conteúdo.",
+        help: "EMAG 3.1 R1.5 - Âncoras acessíveis.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
+      },
+    },
+    // 1.5.11 CHECK
+    {
+      id: "emag-ancoras-acesskey-unico",
+      selector: "body",
+      any: [],
+      all: ["accesskey-unico"],
+      none: [],
+      enabled: true,
+      tags: ["emag", "barra-acessibilidade", "atalhos"],
+      impact: "serious",
+      metadata: {
+        description: "Todas as acesskey devem possuir unicidade.",
+        help: "EMAG 3.1 R1.5 - Âncoras acessíveis.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
+      },
+    },
+
+    // 1.1.3 CHECK
     {
       id: "css-inline",
       selector: "[style]",
@@ -2511,7 +2656,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
       },
     },
-    // 1.1.4
+    // 1.1.4 CHECK
     {
       id: "css-internal",
       selector: "style",
@@ -2528,7 +2673,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
       },
     },
-    // 1.1.5
+    // 1.1.5 CHECK
     {
       id: "js-inline",
       selector:
@@ -2546,7 +2691,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
       },
     },
-    // 1.1.6
+    // 1.1.6 CHECK
     {
       id: "js-internal",
       selector: "script",
@@ -2563,7 +2708,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
       },
     },
-    //1.3.1
+    //1.3.1 CHECK
     {
       id: "emag-has-heading",
       selector: "html",
@@ -2580,7 +2725,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.3",
       },
     },
-    // 1.3.2
+    // 1.3.2 CHECK
     {
       id: "emag-heading-hierarchy",
       selector: "body",
@@ -2597,7 +2742,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.3",
       },
     },
-    // 1.3.4
+    // 1.3.4 CHECK
     {
       id: "emag-only-h1",
       selector: "body",
@@ -2606,7 +2751,7 @@
       none: [],
       enabled: true,
       tags: ["emag", "html", "heading"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         description:
           "Verifica se foi usado apenas <h1> sem outros níveis de cabeçalho.",
@@ -2614,7 +2759,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.3",
       },
     },
-    // 1.3.6
+    // 1.3.6 CHECK
     {
       id: "emag-multiple-h1",
       selector: "body",
@@ -2630,7 +2775,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.3",
       },
     },
-    // 1.4.1
+    // 1.4.1 TESTAR
     {
       id: "emag-content-before-menu",
       selector: "body",
@@ -2646,7 +2791,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.4",
       },
     },
-    // 1.4.3
+    // 1.4.3 CHECK
     {
       id: "emag-tabindex-presence",
       selector: "body",
@@ -2663,7 +2808,7 @@
       },
     },
 
-    // 1.4.6
+    // 1.4.6 CHECK
     {
       id: "emag-tabindex-range",
       selector: "body",
