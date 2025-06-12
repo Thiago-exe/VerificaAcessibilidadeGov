@@ -162,6 +162,12 @@
     },
     // Validar css interno
     {
+      id: "fail-if-exists",
+      evaluate: function (node) {
+        return false; // Sempre falha, pois o seletor já encontrou a violação.
+      },
+    },
+    {
       id: "css-internal-check",
       evaluate: function (node) {
         return !(node.tagName.toLowerCase() === "style");
@@ -197,7 +203,7 @@
           "onabort",
         ];
 
-        return !eventAttributes.some((attr) => node.hasAttribute(attr));
+        return !(eventAttributes.some((attr) => node.hasAttribute(attr)));
       },
     },
     // Presença de JavaScript interno
@@ -2705,7 +2711,7 @@
     {
       id: "css-internal",
       selector: "style",
-      any: ["css-internal-check"],
+      any: ["fail-if-exists"],
       all: [],
       none: [],
       enabled: true,
@@ -2723,7 +2729,7 @@
       id: "js-inline",
       selector:
         "[onload], [onunload], [onblur], [onchange], [onfocus], [onsearch], [onselect], [onsubmit], [onkeydown], [onkeypress], [onkeyup], [onclick], [ondblclick], [onmousedown], [onmousemove], [onmouseout], [onmouseover], [onmouseup], [onmousewheel], [oncopy], [oncut], [onpaste], [onabort]",
-      any: ["js-inline-check"],
+      any: ["fail-if-exists"],
       all: [],
       none: [],
       enabled: true,
@@ -2740,7 +2746,7 @@
     {
       id: "js-internal",
       selector: "script",
-      any: ["js-internal-check"],
+      any: ["fail-if-exists"],
       all: [],
       none: [],
       enabled: true,
