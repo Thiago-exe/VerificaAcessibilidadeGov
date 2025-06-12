@@ -50,6 +50,43 @@
           "Garante que existam âncoras que permitam saltar entre seções da página.",
       },
     },
+
+    // 1.2.3
+    {
+      id: "check-no-text-content",
+      evaluate: function (node) {
+        // Garante que o 'evaluate' só rode em elementos que tenham os métodos necessários.
+        if (!node || typeof node.getAttribute !== "function") {
+          return true;
+        }
+
+        // 1. PASSOU se tiver conteúdo de texto.
+        if ((node.textContent || "").trim() !== "") {
+          return true;
+        }
+
+        // 2. PASSOU se tiver um nome acessível via ARIA ou pelo atributo 'title'.
+        // A verificação do 'title' foi consolidada aqui.
+        if (
+          (node.getAttribute("aria-label") || "").trim() !== "" ||
+          (node.getAttribute("aria-labelledby") || "").trim() !== "" ||
+          (node.getAttribute("title") || "").trim() !== ""
+        ) {
+          return true;
+        }
+
+        // 3. PASSOU se contiver uma imagem com texto alternativo.
+        if (typeof node.querySelector === "function") {
+          const meaningfulImage = node.querySelector('img[alt]:not([alt=""])');
+          if (meaningfulImage) {
+            return true;
+          }
+        }
+
+        // 4. FALHOU se nenhuma das verificações acima passou.
+        return false;
+      },
+    },
     // 1.5.2
     {
       id: "check-anchor-skip-links-target",
@@ -120,7 +157,7 @@
       id: "css-inline-check",
       evaluate: function (node) {
         // Se existe atributo style, retorna true
-        return !(node.hasAttribute("style"));
+        return !node.hasAttribute("style");
       },
     },
     // Validar css interno
@@ -160,7 +197,7 @@
           "onabort",
         ];
 
-        return !(eventAttributes.some((attr) => node.hasAttribute(attr)));
+        return !eventAttributes.some((attr) => node.hasAttribute(attr));
       },
     },
     // Presença de JavaScript interno
@@ -2388,7 +2425,8 @@
     // 2.1.8 CHECK
     {
       id: "emag-event-on-non-interactive",
-      selector: "*:not(a, button, input, textarea, select, label, option, details, summary, script, style, meta, link, title)",
+      selector:
+        "*:not(a, button, input, textarea, select, label, option, details, summary, script, style, meta, link, title)",
       any: ["check-event-on-non-interactive"],
       all: [],
       none: [],
@@ -2626,23 +2664,24 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
       },
     },
-    // 1.2.1
+    // 1.2.3
     {
       id: "emag-no-empty-tag",
       // Seletor para encontrar os principais elementos que deveriam ter conteúdo
-      selector: "p, h1, h2, h3, h4, h5, h6, a, th, td, li, blockquote, figcaption, div, span, path, circle, iframe,dd, base, button, defs",
+      selector:
+        "p, h1, h2, h3, h4, h5, h6, a, th, td, li, blockquote, figcaption, button, span, iframe,dd, base, defs",
       enabled: true,
       tags: ["emag", "structure", "text"],
-      impact: "moderate",
-      any: ["check-no-text-content"],
-      all: [],
+      impact: "serious",
+      any: [],
+      all: ["check-no-text-content"],
       none: [],
       metadata: {
-        description: "Verifica se elementos textuais como parágrafos, cabeçalhos e links não estão vazios, a menos que tenham um nome acessível alternativo.",
-        help: "eMAG 1.2.2 - Presença de tags HTML sem atributo e conteúdo de texto.",
-        // A recomendação 1.2 no site do eMAG cobre todos os sub-itens.
-        helpUrl: "https://emag.governoeletronico.gov.br/#r1.2"
-      }
+        description:
+          "Verifica se elementos textuais como parágrafos, cabeçalhos e links não estão vazios, a menos que tenham um nome acessível alternativo.",
+        help: "eMAG 1.2. - Presença de tags HTML sem atributo e conteúdo de texto.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.2.3",
+      },
     },
 
     // 1.1.3 CHECK
@@ -2713,37 +2752,6 @@
         help: "EMAG 3.1 R1.1.6 - Presença de javascript(s) interno.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
       },
-    },
-    // 1.2.1
-    {
-      id: "check-no-text-content",
-      evaluate: function(node) {
-        // 1. Verifica se há texto visível dentro do nó
-        const hasText = node.textContent.trim() !== '';
-        if (hasText) {
-          return true; // Passou, tem texto.
-        }
-    
-        // 2. Verifica se há um nome acessível via ARIA ou title
-        const hasAccessibleName = node.hasAttribute('aria-label') 
-                               || node.hasAttribute('aria-labelledby') 
-                               || (node.hasAttribute('title') && node.getAttribute('title').trim() !== '');
-        if (hasAccessibleName) {
-          return true; // Passou, tem um nome alternativo.
-        }
-    
-        // 3. Verifica se contém uma imagem com alt text (caso comum para links)
-        const imgWithAlt = node.querySelector('img[alt][alt!=""]');
-        if (imgWithAlt) {
-          return true; // Passou, a imagem interna dá o contexto.
-        }
-    
-        // 4. Se não passou em nenhuma das verificações, é uma falha.
-        return false;
-      },
-      metadata: {
-        description: "Verifica se um elemento tem conteúdo textual ou um nome acessível.",
-      }
     },
 
     //1.3.1 CHECK
