@@ -62,11 +62,7 @@ function DropdownAcessibilidade({ titulo, itens }) {
                   </a>
                 </p>
 
-                {item.tags?.length > 0 && (
-                  <p>
-                    <strong>Tags:</strong> {item.tags.join(", ")}
-                  </p>
-                )}
+                {/* Bloco de Tags REMOVIDO מכאן */}
 
                 {item.nodes &&
                   item.nodes.map((node, j) => (
@@ -81,6 +77,7 @@ function DropdownAcessibilidade({ titulo, itens }) {
   );
 }
 
+// A função DropdownNode permanece a mesma
 function DropdownNode({ node, titulo }) {
   const [aberto, setAberto] = useState(false);
 
@@ -203,5 +200,6 @@ function DropdownNode({ node, titulo }) {
     </div>
   );
 }
+
 
 export default DropdownAcessibilidade;

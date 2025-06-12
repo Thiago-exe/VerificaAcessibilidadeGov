@@ -120,14 +120,14 @@
       id: "css-inline-check",
       evaluate: function (node) {
         // Se existe atributo style, retorna true
-        return node.hasAttribute("style");
+        return !(node.hasAttribute("style"));
       },
     },
     // Validar css interno
     {
       id: "css-internal-check",
       evaluate: function (node) {
-        return node.tagName.toLowerCase() === "style";
+        return !(node.tagName.toLowerCase() === "style");
       },
     },
     // Presença de JavaScript inline
@@ -160,14 +160,14 @@
           "onabort",
         ];
 
-        return eventAttributes.some((attr) => node.hasAttribute(attr));
+        return !(eventAttributes.some((attr) => node.hasAttribute(attr)));
       },
     },
     // Presença de JavaScript interno
     {
       id: "js-internal-check",
       evaluate: function (node) {
-        return node.tagName.toLowerCase() === "script";
+        return !(node.tagName.toLowerCase() === "script");
       },
     },
     // 1.3.1
@@ -224,27 +224,63 @@
     {
       id: "check-multiple-h1",
       evaluate: function (node) {
+        // Altere o seletor para garantir que estamos buscando em todo o documento composto
+        // Se a página tem iframes, o Axe-core já deve estar rodando a regra neles
+        // O `node` aqui será o `document.body` ou o `document.body` do iframe.
+        const allH1s = Array.from(node.querySelectorAll("h1"));
+
+        // DEBUG: Adicione logs para ver o que está sendo encontrado
+        console.log(
+          `[DEBUG check-multiple-h1] Node: ${node.nodeName}, ID: ${node.id}`
+        );
+        console.log(
+          `[DEBUG check-multiple-h1] Total h1s encontrados no contexto atual: ${allH1s.length}`
+        );
+
+        allH1s.forEach((h1, index) => {
+          console.log(
+            `[DEBUG check-multiple-h1] h1[${index}]: ${h1.outerHTML}`
+          );
+        });
+
+        return allH1s.length <= 1;
+      },
+      metadata: {
+        description: "Garante que não existam múltiplos <h1> na página.",
+      },
+    },
+    /*
+    {
+      id: "check-multiple-h1",
+      evaluate: function (node) {
         const h1Count = node.querySelectorAll("h1").length;
         return h1Count <= 1;
       },
       metadata: {
         description: "Garante que não existam múltiplos <h1> na página.",
       },
-    },
+    },*/
     // 1.4.1 VERIFICAR TESTAR
     {
       id: "check-content-before-menu",
-      evaluate: function(node) {
+      evaluate: function (node) {
         const contentSelectors = ["main", "#content", "#main", '[role="main"]'];
-        const menuSelectors = ["nav", "#menu", "#navigation", '[role="navigation"]'];
-    
+        const menuSelectors = [
+          "nav",
+          "#menu",
+          "#navigation",
+          '[role="navigation"]',
+        ];
+
         const content = document.querySelector(contentSelectors.join(","));
         const menu = document.querySelector(menuSelectors.join(","));
-    
+
         if (!content || !menu) return undefined;
-    
-        const isContentFirst = content.compareDocumentPosition(menu) & Node.DOCUMENT_POSITION_FOLLOWING;
-    
+
+        const isContentFirst =
+          content.compareDocumentPosition(menu) &
+          Node.DOCUMENT_POSITION_FOLLOWING;
+
         // Retorna objeto com dados para relatedNodes
         return {
           result: !!isContentFirst,
@@ -252,27 +288,27 @@
             contentHtml: content.outerHTML,
             menuHtml: menu.outerHTML,
             contentSelector: axe.utils.getSelector(content),
-            menuSelector: axe.utils.getSelector(menu)
-          }
+            menuSelector: axe.utils.getSelector(menu),
+          },
         };
       },
       metadata: {
         description: "Verifica se o conteúdo principal precede o menu no DOM.",
         help: "EMAG 1.4.1 - Conteúdo principal deve vir antes do menu no HTML.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.4.1",
-        relatedNodes: function(node, options, result) {
+        relatedNodes: function (node, options, result) {
           return [
-            { 
+            {
               html: result.data.contentHtml,
-              target: [result.data.contentSelector] 
+              target: [result.data.contentSelector],
             },
-            { 
+            {
               html: result.data.menuHtml,
-              target: [result.data.menuSelector] 
-            }
+              target: [result.data.menuSelector],
+            },
           ];
-        }
-      }
+        },
+      },
     },
     // 1.4.3 CHECK
     {
@@ -1009,26 +1045,27 @@
     //3.6.7
     {
       id: "check-img-same-alt-different-src",
-      evaluate: function(node) {
+      evaluate: function (node) {
         const currentAlt = node.getAttribute("alt") || "";
         const currentSrc = node.getAttribute("src") || "";
-    
+
         if (!currentAlt) return true;
-    
+
         // Usa document.querySelectorAll diretamente (não precisa de context)
         const images = document.querySelectorAll("img[alt]");
-        
-        return !Array.from(images).some(img => 
-          img !== node && 
-          img.getAttribute("alt") === currentAlt && 
-          img.getAttribute("src") !== currentSrc
+
+        return !Array.from(images).some(
+          (img) =>
+            img !== node &&
+            img.getAttribute("alt") === currentAlt &&
+            img.getAttribute("src") !== currentSrc
         );
       },
       metadata: {
         description: "Verifica se imagens com mesmo alt têm src diferente.",
         help: "EMAG 3.1 6.6.7 - Imagens diferentes não devem ter o mesmo texto alternativo.",
-        helpUrl: "https://emag.governoeletronico.gov.br/#r6.6.7"
-      }
+        helpUrl: "https://emag.governoeletronico.gov.br/#r6.6.7",
+      },
     },
     //3.6.8
     {
@@ -2147,22 +2184,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
       },
     },
-    // ?????
-    {
-      id: "emag-descriptive-title",
-      selector: "html",
-      any: ["check-descriptive-title"],
-      all: [],
-      none: [],
-      enabled: true,
-      tags: ["emag", "acessibilidade", "head"],
-      impact: "minor",
-      metadata: {
-        description: "Verifica se o título da página existe.",
-        help: "EMAG 3.1 3.3 - O título da página deve existir.",
-        helpUrl: "https://emag.governoeletronico.gov.br/#r3.3",
-      },
-    },
+
     // 3.3 CHECK
     {
       id: "emag-page-title",
@@ -2217,7 +2239,7 @@
     // 2.6.1 CHECK
     {
       id: "emag-no-blink",
-      selector: "body",
+      selector: "blink",
       any: ["check-blink-element"],
       all: [],
       none: [],
@@ -2233,7 +2255,7 @@
     // 2.6.2 CHECK
     {
       id: "emag-no-marquee",
-      selector: "body",
+      selector: "marquee",
       any: ["check-marquee-element"],
       all: [],
       none: [],
@@ -2249,7 +2271,7 @@
     // 2.6.3 CHECK
     {
       id: "emag-no-animated-gif",
-      selector: "body",
+      selector: "img[src$='.gif']",
       any: ["check-animated-gif"],
       all: [],
       none: [],
@@ -2266,7 +2288,7 @@
     // 2.4.1 CHECK
     {
       id: "emag-auto-redirect",
-      selector: "body",
+      selector: "meta[http-equiv='refresh']",
       any: ["check-auto-redirect"],
       all: [],
       none: [],
@@ -2282,7 +2304,7 @@
     // 2.3.1 CHECK
     {
       id: "emag-auto-refresh",
-      selector: "body",
+      selector: "meta[http-equiv='refresh']",
       any: ["check-auto-refresh"],
       all: [],
       none: [],
@@ -2298,7 +2320,7 @@
     // 2.2.4 CHECK
     {
       id: "emag-applet-has-text",
-      selector: "body",
+      selector: "applet",
       any: ["check-applet-has-text"],
       all: [],
       none: [],
@@ -2315,7 +2337,7 @@
     // 2.2.3 CHECK
     {
       id: "emag-embed-has-text",
-      selector: "body",
+      selector: "embed",
       any: ["check-embed-has-text"],
       all: [],
       none: [],
@@ -2332,7 +2354,7 @@
     // 2.2.2 CHECK
     {
       id: "emag-object-has-text",
-      selector: "body",
+      selector: "object",
       any: ["check-object-has-text"],
       all: [],
       none: [],
@@ -2349,7 +2371,7 @@
     // 2.2.1 CHECK
     {
       id: "emag-noscript-with-script",
-      selector: "body",
+      selector: "script",
       any: ["check-noscript-with-script"],
       all: [],
       none: [],
@@ -2366,7 +2388,7 @@
     // 2.1.8 CHECK
     {
       id: "emag-event-on-non-interactive",
-      selector: "body",
+      selector: "*:not(a, button, input, textarea, select, label, option, details, summary, script, style, meta, link, title)",
       any: ["check-event-on-non-interactive"],
       all: [],
       none: [],
@@ -2383,7 +2405,7 @@
     //2.1.6 CHECK
     {
       id: "emag-dblclick-event",
-      selector: "body",
+      selector: "[ondblclick]",
       any: ["check-dblclick-event"],
       all: [],
       none: [],
@@ -2401,7 +2423,7 @@
     // 2.1.2 CHECK
     {
       id: "emag-mouse-only-events",
-      selector: "body",
+      selector: "[onmousedown], [onmouseup], [onmouseover], [onmouseout]",
       any: ["check-mouse-only-events"],
       all: [],
       none: [],
@@ -2419,7 +2441,7 @@
     // 1.9.1 CHECK
     {
       id: "emag-link-target-blank",
-      selector: "body",
+      selector: "a[target='_blank']",
       any: ["check-link-target-blank"],
       all: [],
       none: [],
@@ -2436,7 +2458,7 @@
     //1.8.1 TESTAR
     {
       id: "emag-semantic-landmarks-missing",
-      selector: "body",
+      selector: "html",
       any: ["check-semantic-landmarks-missing"],
       all: [],
       none: [],
@@ -2448,40 +2470,6 @@
           "Verifica se há ausência de landmarks semânticas HTML5 como header, footer, section, aside, nav ou article.",
         help: "EMAG 3.1 R1.8.3 - Utilize landmarks semânticas (header, footer, section, aside, nav, article) para estruturar o conteúdo.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.8",
-      },
-    },
-    //1.8.3 TESTAR
-    {
-      id: "emag-semantic-landmarks-exist",
-      selector: "body",
-      any: ["check-semantic-landmarks-exist"],
-      all: [],
-      none: [],
-      enabled: true,
-      tags: ["emag", "html", "semantics"],
-      impact: "minor",
-      metadata: {
-        description:
-          "Verifica se há ausência de landmarks semânticas HTML5 como header, footer, section, aside, nav ou article.",
-        help: "EMAG 3.1 R1.8.3 - Utilize landmarks semânticas (header, footer, section, aside, nav, article) para estruturar o conteúdo.",
-        helpUrl: "https://emag.governoeletronico.gov.br/#r1.8",
-      },
-    },
-
-    //1.1 DEVE SER IMPLEMENTADO
-    {
-      id: "emag-html-validation",
-      selector: "html",
-      any: ["emag-html-validation-check"],
-      all: [],
-      none: [],
-      enabled: true,
-      tags: ["emag", "html", "validação"],
-      impact: "moderate",
-      metadata: {
-        description: "Validação do HTML via W3C Validator",
-        help: "EMAG 3.1 R1.1 - Presença de erros de marcação HTML.",
-        helpUrl: "https://validator.w3.org/",
       },
     },
 
@@ -2505,7 +2493,7 @@
     // 1.6.2 TESTAR
     {
       id: "emag-form-inside-table",
-      selector: "body",
+      selector: "table form",
       any: ["check-form-inside-table"],
       all: [],
       none: [],
@@ -2518,11 +2506,11 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.6",
       },
     },
-    // 1.6.1 TESTAR
+    // 1.6.1 AGORA COM CHECK
     {
       id: "emag-table-exists",
-      selector: "body",
-      any: ["check-table-exists"],
+      selector: "table",
+      any: ["emag-table-presence"],
       all: [],
       none: [],
       enabled: true,
@@ -2554,7 +2542,7 @@
     // 1.5.1 CHECK tem que revisar isso ai talvez precise separar como as outras // precisa separar
     {
       id: "emag-ancoras-bloco",
-      selector: "body",
+      selector: "html",
       any: ["check-anchor-skip-links-presence"],
       all: [],
       none: [],
@@ -2571,7 +2559,7 @@
     //1.5.2 CHECK
     {
       id: "emag-ancoras-bloco-existente",
-      selector: "body",
+      selector: "html",
       any: [],
       all: ["check-anchor-skip-links-target"],
       none: [],
@@ -2608,7 +2596,7 @@
     // 1.5.9 CHECK
     {
       id: "emag-ancoras-primeiro-link",
-      selector: "body",
+      selector: "html",
       any: ["primeiro-link-para-conteudo"],
       all: [],
       none: [],
@@ -2625,7 +2613,7 @@
     // 1.5.11 CHECK
     {
       id: "emag-ancoras-acesskey-unico",
-      selector: "body",
+      selector: "html",
       any: [],
       all: ["accesskey-unico"],
       none: [],
@@ -2637,6 +2625,24 @@
         help: "EMAG 3.1 R1.5 - Âncoras acessíveis.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
       },
+    },
+    // 1.2.1
+    {
+      id: "emag-no-empty-tag",
+      // Seletor para encontrar os principais elementos que deveriam ter conteúdo
+      selector: "p, h1, h2, h3, h4, h5, h6, a, th, td, li, blockquote, figcaption, div, span, path, circle, iframe,dd, base, button, defs",
+      enabled: true,
+      tags: ["emag", "structure", "text"],
+      impact: "moderate",
+      any: ["check-no-text-content"],
+      all: [],
+      none: [],
+      metadata: {
+        description: "Verifica se elementos textuais como parágrafos, cabeçalhos e links não estão vazios, a menos que tenham um nome acessível alternativo.",
+        help: "eMAG 1.2.2 - Presença de tags HTML sem atributo e conteúdo de texto.",
+        // A recomendação 1.2 no site do eMAG cobre todos os sub-itens.
+        helpUrl: "https://emag.governoeletronico.gov.br/#r1.2"
+      }
     },
 
     // 1.1.3 CHECK
@@ -2708,6 +2714,38 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.1",
       },
     },
+    // 1.2.1
+    {
+      id: "check-no-text-content",
+      evaluate: function(node) {
+        // 1. Verifica se há texto visível dentro do nó
+        const hasText = node.textContent.trim() !== '';
+        if (hasText) {
+          return true; // Passou, tem texto.
+        }
+    
+        // 2. Verifica se há um nome acessível via ARIA ou title
+        const hasAccessibleName = node.hasAttribute('aria-label') 
+                               || node.hasAttribute('aria-labelledby') 
+                               || (node.hasAttribute('title') && node.getAttribute('title').trim() !== '');
+        if (hasAccessibleName) {
+          return true; // Passou, tem um nome alternativo.
+        }
+    
+        // 3. Verifica se contém uma imagem com alt text (caso comum para links)
+        const imgWithAlt = node.querySelector('img[alt][alt!=""]');
+        if (imgWithAlt) {
+          return true; // Passou, a imagem interna dá o contexto.
+        }
+    
+        // 4. Se não passou em nenhuma das verificações, é uma falha.
+        return false;
+      },
+      metadata: {
+        description: "Verifica se um elemento tem conteúdo textual ou um nome acessível.",
+      }
+    },
+
     //1.3.1 CHECK
     {
       id: "emag-has-heading",
@@ -2728,7 +2766,7 @@
     // 1.3.2 CHECK
     {
       id: "emag-heading-hierarchy",
-      selector: "body",
+      selector: "html",
       any: ["check-heading-hierarchy"],
       all: [],
       none: [],
@@ -2745,7 +2783,7 @@
     // 1.3.4 CHECK
     {
       id: "emag-only-h1",
-      selector: "body",
+      selector: "h1",
       any: ["check-only-h1"],
       all: [],
       none: [],
@@ -2762,7 +2800,7 @@
     // 1.3.6 CHECK
     {
       id: "emag-multiple-h1",
-      selector: "body",
+      selector: "h1",
       any: ["check-multiple-h1"],
       all: [],
       none: [],
@@ -2778,7 +2816,7 @@
     // 1.4.1 TESTAR
     {
       id: "emag-content-before-menu",
-      selector: "body",
+      selector: "html",
       any: ["check-content-before-menu"],
       all: [],
       none: [],
