@@ -66,28 +66,48 @@ app.post("/analise", async (req, res) => {
       fs.unlinkSync(path.join(screenshotDir, f))
     );
 
+    // CÓDIGO CORRIGIDO DOS PRINTS MAIS ROBUSTO
     for (const [i, violacao] of resultado.violations.entries()) {
       for (const [j, node] of violacao.nodes.entries()) {
-        const selector = node.target[0];
+        // Pega o primeiro seletor do array de alvos
+        const selector = Array.isArray(node.target)
+          ? node.target[0]
+          : node.target;
+
         try {
-          // Adiciona destaque visual
-          await page.addStyleTag({
-            content: `${selector} { outline: 4px solid red !important; }`,
-          });
-
           const el = await page.$(selector);
-          if (el) {
-            await el.scrollIntoViewIfNeeded?.();
-            const filename = `violacao-${i}-${j}.png`;
-            const filepath = path.join(screenshotDir, filename);
-            await el.screenshot({ path: filepath });
 
-            // Incluir no retorno
-            node.screenshot = `http://localhost:3001/screenshots/${filename}`;
-            node.snippet = node.html; // 👈 Adiciona aqui o trecho HTML violado
+          if (el) {
+            // Verifica se o elemento é realmente visível na página
+            const isVisible = await page.evaluate((e) => {
+              if (!e || typeof window.getComputedStyle !== "function")
+                return false;
+              const style = window.getComputedStyle(e);
+              return (
+                style &&
+                style.display !== "none" &&
+                style.visibility !== "hidden" &&
+                e.offsetParent !== null
+              );
+            }, el);
+
+            // Só tenta tirar screenshot se o elemento for visível
+            if (isVisible) {
+              await page.addStyleTag({
+                content: `${selector} { outline: 4px solid red !important; }`,
+              });
+              await el.scrollIntoViewIfNeeded?.();
+              const filename = `violacao-${i}-${j}.png`;
+              const filepath = path.join(screenshotDir, filename);
+              await el.screenshot({ path: filepath });
+              node.screenshot = `http://localhost:3001/screenshots/${filename}`;
+            }
           }
+          node.snippet = node.html;
         } catch (e) {
-          console.log(`Erro no seletor ${selector}:`, e.message);
+          console.log(
+            `Ignorando erro de screenshot para o seletor "${selector}": ${e.message}`
+          );
         }
       }
     }

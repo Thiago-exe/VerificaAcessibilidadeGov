@@ -203,7 +203,7 @@
           "onabort",
         ];
 
-        return !(eventAttributes.some((attr) => node.hasAttribute(attr)));
+        return !eventAttributes.some((attr) => node.hasAttribute(attr));
       },
     },
     // Presença de JavaScript interno
@@ -304,53 +304,37 @@
       },
     },*/
     // 1.4.1 VERIFICAR TESTAR
+    // Adicione este novo objeto ao seu array `emagChecks`
     {
-      id: "check-content-before-menu",
+      id: "check-menu-is-after-content",
       evaluate: function (node) {
-        const contentSelectors = ["main", "#content", "#main", '[role="main"]'];
-        const menuSelectors = [
-          "nav",
-          "#menu",
-          "#navigation",
-          '[role="navigation"]',
-        ];
+        // 'node' aqui será o elemento do menu
+        const contentSelectors = 'main, #content, #main, [role="main"]';
+        const content = document.querySelector(contentSelectors);
 
-        const content = document.querySelector(contentSelectors.join(","));
-        const menu = document.querySelector(menuSelectors.join(","));
+        // Se a página não tiver uma área de conteúdo principal, a regra não se aplica.
+        if (!content) {
+          return true;
+        }
 
-        if (!content || !menu) return undefined;
+        // Verifica se o elemento de conteúdo aparece ANTES do menu atual ('node')
+        const contentIsFirst = !!(
+          content.compareDocumentPosition(node) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+        );
 
-        const isContentFirst =
-          content.compareDocumentPosition(menu) &
-          Node.DOCUMENT_POSITION_FOLLOWING;
-
-        // Retorna objeto com dados para relatedNodes
-        return {
-          result: !!isContentFirst,
-          data: {
-            contentHtml: content.outerHTML,
-            menuHtml: menu.outerHTML,
+        // Se o conteúdo NÃO vier primeiro, encontramos uma violação.
+        if (!contentIsFirst) {
+          // Adiciona dados para um relatório mais rico, mostrando os dois elementos envolvidos
+          this.data({
             contentSelector: axe.utils.getSelector(content),
-            menuSelector: axe.utils.getSelector(menu),
-          },
-        };
-      },
-      metadata: {
-        description: "Verifica se o conteúdo principal precede o menu no DOM.",
-        help: "EMAG 1.4.1 - Conteúdo principal deve vir antes do menu no HTML.",
-        helpUrl: "https://emag.governoeletronico.gov.br/#r1.4.1",
-        relatedNodes: function (node, options, result) {
-          return [
-            {
-              html: result.data.contentHtml,
-              target: [result.data.contentSelector],
-            },
-            {
-              html: result.data.menuHtml,
-              target: [result.data.menuSelector],
-            },
-          ];
-        },
+            menuSelector: axe.utils.getSelector(node),
+          });
+          return false; // FALHA
+        }
+
+        // Se o conteúdo vem primeiro, a ordem está correta.
+        return true; // PASSA
       },
     },
     // 1.4.3 CHECK
@@ -440,49 +424,37 @@
     },
     // 1.7.1
     {
-      id: "check-adjacent-links-without-separation",
-      evaluate: function (node) {
-        const results = [];
-        const links = Array.from(node.querySelectorAll("a"));
-
-        for (let i = 0; i < links.length - 1; i++) {
-          const current = links[i];
-          const next = links[i + 1];
-
-          // Verifica se os dois links são irmãos diretos
-          if (current.parentElement === next.parentElement) {
-            const children = Array.from(current.parentElement.childNodes);
-            const currentIndex = children.indexOf(current);
-            const nextIndex = children.indexOf(next);
-
-            if (nextIndex === currentIndex + 1) {
-              // Verifica se há separação entre os links
-              const between = children.slice(currentIndex + 1, nextIndex);
-              const hasSeparator = between.some((node) => {
-                return (
-                  (node.nodeType === Node.TEXT_NODE &&
-                    node.textContent.trim() !== "") ||
-                  (node.nodeType === Node.ELEMENT_NODE &&
-                    node.tagName.toLowerCase() !== "a")
-                );
-              });
-
-              if (!hasSeparator) {
-                results.push(current, next); // Adiciona os links problemáticos
-              }
-            }
-          }
+      id: "check-if-next-is-unseparated-link",
+      evaluate: function(node) {
+        // 'node' é o link atual que estamos verificando
+        const nextEl = node.nextElementSibling;
+    
+        // Se o próximo elemento irmão não existir ou não for um link, esta regra não se aplica a ESTE link.
+        if (!nextEl || nextEl.tagName !== 'A' || !nextEl.hasAttribute('href')) {
+          return true; // PASSA
         }
-
-        return results.length > 0 ? results : false;
-      },
-      metadata: {
-        description:
-          "Verifica se há links adjacentes sem separação textual ou por elementos.",
-        help: "EMAG 3.1 R2.2.3 - Separação entre links adjacentes",
-        helpUrl: "https://emag.governoeletronico.gov.br/#r2.2",
-      },
+    
+        // Se o próximo irmão é um link, verificamos o que há entre eles.
+        let sibling = node.nextSibling;
+        while (sibling && sibling !== nextEl) {
+          // Se encontrarmos um nó de texto com conteúdo, é um separador.
+          if (sibling.nodeType === 3 && sibling.textContent.trim() !== '') {
+            return true; // PASSOU, encontrou separador de texto
+          }
+          // Se encontrarmos qualquer outro elemento (ex: <br>, <span>), também é um separador.
+          if (sibling.nodeType === 1) {
+            return true; // PASSOU, encontrou elemento separador
+          }
+          sibling = sibling.nextSibling;
+        }
+    
+        // Se o loop terminar sem encontrar um separador, é uma violação.
+        // Adicionamos o segundo link ao relatório para dar mais contexto.
+        this.relatedNodes([nextEl]);
+        return false; // FALHA
+      }
     },
+
     //1.8.1
     {
       id: "check-semantic-landmarks-missing",
@@ -971,9 +943,18 @@
     {
       id: "check-duplicate-title-text",
       evaluate: function (node) {
-        const title = node.getAttribute("title") || "";
+        const title = (node.getAttribute("title") || "").trim();
         const text = node.textContent.trim();
-        return title !== text;
+
+        // Se não houver title ou texto, não há duplicidade para verificar.
+        // Outras regras (como emag-no-empty-tag) cuidam de links vazios.
+        if (!title || !text) {
+          return true; // PASSA (não é responsabilidade desta regra)
+        }
+
+        // Compara ambos em minúsculas para ignorar a diferença de capitalização.
+        // Retorna 'false' (FALHA) se eles forem iguais, e 'true' (PASSA) se forem diferentes.
+        return title.toLowerCase() !== text.toLowerCase();
       },
       metadata: {
         description: "Verifica se o title é igual ao texto do link.",
@@ -2520,16 +2501,15 @@
     // 1.7.1 TESTAR
     {
       id: "emag-adjacent-links-without-separation",
-      selector: "body",
-      any: ["check-adjacent-links-without-separation"],
-      all: [],
-      none: [],
+      selector: "a[href]", // A regra agora roda em CADA link
       enabled: true,
       tags: ["emag", "html", "link"],
       impact: "serious",
+      all: ["check-if-next-is-unseparated-link"],
+      any: [],
+      none: [],
       metadata: {
-        description:
-          "Verifica se há links adjacentes sem separação textual ou por elementos.",
+        description: "Verifica se há links adjacentes sem separação textual ou por elementos.",
         help: "EMAG 3.1 R1.7.1 - Links adjacentes devem ter separação, seja por texto (ex: ' | ' ou ' / ') ou por elementos (ex: <span>, <li>).",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.7",
       },
@@ -2714,6 +2694,7 @@
       any: ["fail-if-exists"],
       all: [],
       none: [],
+      excludeHidden: false,
       enabled: true,
       tags: ["emag", "padrões", "html"],
       impact: "minor",
@@ -2732,6 +2713,7 @@
       any: ["fail-if-exists"],
       all: [],
       none: [],
+      excludeHidden: false,
       enabled: true,
       tags: ["emag", "padrões", "html", "javascript"],
       impact: "minor",
@@ -2749,6 +2731,7 @@
       any: ["fail-if-exists"],
       all: [],
       none: [],
+      excludeHidden: false,
       enabled: true,
       tags: ["emag", "padrões", "html", "javascript"],
       impact: "minor",
@@ -2828,17 +2811,21 @@
       },
     },
     // 1.4.1 TESTAR
+    // Substitua a regra antiga por esta no seu array `emagRules`
     {
       id: "emag-content-before-menu",
-      selector: "html",
-      any: ["check-content-before-menu"],
-      all: [],
-      none: [],
+      // 1. O seletor agora busca por todos os possíveis elementos de menu
+      selector: 'nav, #menu, #navigation, [role="navigation"]',
       enabled: true,
       tags: ["emag", "html", "order", "structure"],
       impact: "minor",
+      // 2. A regra passará se o check 'check-menu-is-after-content' retornar 'true'
+      all: ["check-menu-is-after-content"],
+      any: [],
+      none: [],
       metadata: {
-        description: "Verifica se o conteúdo está antes do menu no HTML.",
+        description:
+          "Verifica se o conteúdo principal está antes do menu no HTML.",
         help: "EMAG 3.1 R1.4.1 O bloco de conteúdo deve estar antes do menu no código HTML para garantir a ordem lógica de leitura.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.4",
       },
