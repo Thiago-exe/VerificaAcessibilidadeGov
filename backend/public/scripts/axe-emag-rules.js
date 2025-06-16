@@ -425,20 +425,20 @@
     // 1.7.1
     {
       id: "check-if-next-is-unseparated-link",
-      evaluate: function(node) {
+      evaluate: function (node) {
         // 'node' é o link atual que estamos verificando
         const nextEl = node.nextElementSibling;
-    
+
         // Se o próximo elemento irmão não existir ou não for um link, esta regra não se aplica a ESTE link.
-        if (!nextEl || nextEl.tagName !== 'A' || !nextEl.hasAttribute('href')) {
+        if (!nextEl || nextEl.tagName !== "A" || !nextEl.hasAttribute("href")) {
           return true; // PASSA
         }
-    
+
         // Se o próximo irmão é um link, verificamos o que há entre eles.
         let sibling = node.nextSibling;
         while (sibling && sibling !== nextEl) {
           // Se encontrarmos um nó de texto com conteúdo, é um separador.
-          if (sibling.nodeType === 3 && sibling.textContent.trim() !== '') {
+          if (sibling.nodeType === 3 && sibling.textContent.trim() !== "") {
             return true; // PASSOU, encontrou separador de texto
           }
           // Se encontrarmos qualquer outro elemento (ex: <br>, <span>), também é um separador.
@@ -447,12 +447,12 @@
           }
           sibling = sibling.nextSibling;
         }
-    
+
         // Se o loop terminar sem encontrar um separador, é uma violação.
         // Adicionamos o segundo link ao relatório para dar mais contexto.
         this.relatedNodes([nextEl]);
         return false; // FALHA
-      }
+      },
     },
 
     //1.8.1
@@ -814,19 +814,6 @@
         description: "Verifica se o texto do link está em formato de URL.",
       },
     },
-    //3.5.3
-    {
-      id: "check-empty-link",
-      evaluate: function (node) {
-        return (
-          node.textContent.trim().length > 0 ||
-          node.querySelector('img[alt][alt!=""]')
-        );
-      },
-      metadata: {
-        description: "Verifica se o link tem conteúdo descritivo.",
-      },
-    },
     // 3.5.4
     {
       id: "check-title-only-link",
@@ -969,24 +956,6 @@
       },
       metadata: {
         description: "Verifica se o texto do link é muito longo.",
-      },
-    },
-    // 3.5.14
-    {
-      id: "check-broken-links",
-      evaluate: async function (node) {
-        const href = node.getAttribute("href");
-        if (!href) return true;
-
-        try {
-          const response = await fetch(href, { method: "HEAD" });
-          return response.ok;
-        } catch {
-          return false;
-        }
-      },
-      metadata: {
-        description: "Verifica se o link está quebrado.",
       },
     },
     // 3.5.15
@@ -1219,35 +1188,6 @@
       metadata: {
         description:
           "Verifica se elementos de sigla/abreviação possuem título descritivo.",
-      },
-    },
-    // 4.1.2
-    {
-      id: "check-color-contrast",
-      evaluate: function (node) {
-        // Obtém estilos computados
-        const style = window.getComputedStyle(node);
-        const bgColor = style.backgroundColor;
-        const textColor = style.color;
-
-        // Ignora elementos invisíveis ou sem texto
-        if (style.display === "none" || style.visibility === "hidden")
-          return true;
-        if (!axe.commons.text.visible(node, false)) return true;
-
-        // Converte cores para formato hexadecimal
-        const hexBg = axe.commons.color.parseColor(bgColor).toHexString();
-        const hexText = axe.commons.color.parseColor(textColor).toHexString();
-
-        // Calcula razão de contraste
-        const contrast = axe.commons.color.getContrast(hexBg, hexText);
-
-        // Requer no mínimo 4.5:1 para texto normal
-        return contrast >= 4.5;
-      },
-      metadata: {
-        description:
-          "Verifica relação de contraste mínimo de 4.5:1 entre texto e fundo.",
       },
     },
     //4.4.1
@@ -1891,20 +1831,6 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r4.4.1",
       },
     },
-    // 4.1.2 ???
-    {
-      id: "emag-color-contrast",
-      selector: "*",
-      excludeHidden: true,
-      any: ["check-color-contrast"],
-      enabled: true,
-      tags: ["emag", "color", "acessibilidade"],
-      impact: "serious",
-      metadata: {
-        help: "EMAG 3.1 4.1.2 - Contraste entre texto e fundo deve ser ≥4.5:1.",
-        helpUrl: "https://emag.governoeletronico.gov.br/#r4.1.2",
-      },
-    },
     // 3.12.1 CHECK
     {
       id: "emag-abbr-title",
@@ -2061,19 +1987,6 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
       },
     },
-    // 3.5.14 CHECK
-    {
-      id: "emag-broken-links",
-      selector: "a[href]",
-      any: ["check-broken-links"],
-      enabled: true,
-      tags: ["emag", "link", "acessibilidade"],
-      impact: "serious",
-      metadata: {
-        help: "EMAG 3.1 3.5.14 - Evitar links quebrados (404, 503, etc).",
-        helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
-      },
-    },
     // 3.5.13 CHECK
     {
       id: "emag-long-link-text",
@@ -2180,12 +2093,13 @@
     {
       id: "emag-empty-link",
       selector: "a[href]",
-      any: ["check-empty-link"],
-      all: [],
-      none: [],
       enabled: true,
       tags: ["emag", "link", "acessibilidade"],
       impact: "serious",
+      // CORREÇÃO: Usando o nome correto do check que já existe no seu arquivo.
+      all: ["check-no-text-content"],
+      any: [],
+      none: [],
       metadata: {
         description: "Links não devem estar vazios.",
         help: "EMAG 3.1 3.5.3 - Evitar links sem texto descritivo.",
@@ -2509,7 +2423,8 @@
       any: [],
       none: [],
       metadata: {
-        description: "Verifica se há links adjacentes sem separação textual ou por elementos.",
+        description:
+          "Verifica se há links adjacentes sem separação textual ou por elementos.",
         help: "EMAG 3.1 R1.7.1 - Links adjacentes devem ter separação, seja por texto (ex: ' | ' ou ' / ') ou por elementos (ex: <span>, <li>).",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.7",
       },
@@ -2727,7 +2642,7 @@
     // 1.1.6 CHECK
     {
       id: "js-internal",
-      selector: "script",
+      selector: "script:not([src])",
       any: ["fail-if-exists"],
       all: [],
       none: [],
@@ -2869,7 +2784,18 @@
   axe.configure({
     branding: { applicaton: "eMAG Validator" },
     standards: { emag: "3.1" },
-    checks: emagChecks,
-    rules: emagRules,
+    checks: emagChecks, // O array de checks agora não tem mais o 'check-color-contrast'
+    rules: [
+      // AQUI ESTÁ A MÁGICA:
+      // Estamos dizendo ao Axe para pegar a regra nativa 'color-contrast'
+      // e adicionar a tag 'emag' a ela.
+      {
+        id: 'color-contrast', 
+        tags: ['emag', 'color']
+      },
+      
+      // O operador '...' pega todas as suas outras regras customizadas e as adiciona à configuração.
+      ...emagRules 
+    ],
   });
 })();

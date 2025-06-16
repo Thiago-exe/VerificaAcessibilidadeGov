@@ -3,36 +3,29 @@ const cors = require("cors");
 const puppeteer = require("puppeteer");
 const fs = require("fs");
 const path = require("path");
-const axeSource = fs.readFileSync(
-  require.resolve("axe-core/axe.min.js"),
-  "utf8"
-);
-const ptbr = require("axe-core/locales/pt_BR.json"); // Localização em portugues do Axe-Core padrão
-// abandonado const regrasEmag = require("./emag-rules"); //Regras personalizadas do Emag
-const app = express();
 
+const axeSource = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
+const ptbr = require("axe-core/locales/pt_BR.json");
 const emagRulesScript = fs.readFileSync(
   path.join(__dirname, "public/scripts/axe-emag-rules.js"),
   "utf8"
-); // tentativa
-
-app.use(cors());
-app.use(express.json());
-app.use(
-  "/screenshots",
-  express.static(path.join(__dirname, "public/screenshots"))
 );
 
+const app = express();
+app.use(cors());
+app.use(express.json());
+app.use("/screenshots", express.static(path.join(__dirname, "public/screenshots")));
+
 app.post("/analise", async (req, res) => {
-  const { url } = req.body;
-  const screenshots = [];
+  const { url, runMode } = req.body;
+  let browser;
 
   if (!url || !url.startsWith("http")) {
     return res.status(400).json({ erro: "URL inválida" });
   }
 
   try {
-    const browser = await puppeteer.launch();
+    browser = await puppeteer.launch();
     const page = await browser.newPage();
     await page.goto(url, { waitUntil: "load", timeout: 60000 });
 
@@ -40,80 +33,86 @@ app.post("/analise", async (req, res) => {
     await page.evaluate((ptbrLocale) => {
       axe.configure({ locale: ptbrLocale });
     }, ptbr);
+    await page.evaluate(emagRulesScript);
 
-    await page.evaluate(emagRulesScript); // já tem axe.configure() dentro
-    /* await page.evaluate(
-      (axeSource, regrasEmag) => {
-        eval(axeSource);
-        axe.configure(regrasEmag);
-      },
-      axeSource,
-      regrasEmag
-    ); // Carregamento das regras personalizadas 
-    // abandonado*/
+    let axeOptions = {};
+    if (runMode === 'emag') {
+      axeOptions = { runOnly: { type: 'tag', values: ['emag'] } };
+    } else if (runMode === 'wcag') {
+      axeOptions = { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'best-practice'] } };
+    }
+    
+    const rawResult = await page.evaluate((options) => axe.run(options), axeOptions);
+    const resultado = JSON.parse(JSON.stringify(rawResult));
 
-    const rawResult = await page.evaluate(() => axe.run());
-    const resultado = JSON.parse(JSON.stringify(rawResult)); // 👈 Clona o objeto
-
-    // Criar pasta se não existir
     const screenshotDir = path.join(__dirname, "public/screenshots");
-    if (!fs.existsSync(screenshotDir)) {
+    if (fs.existsSync(screenshotDir)) {
+      fs.readdirSync(screenshotDir).forEach((f) => fs.unlinkSync(path.join(screenshotDir, f)));
+    } else {
       fs.mkdirSync(screenshotDir, { recursive: true });
     }
 
-    // Apagar imagens antigas
-    fs.readdirSync(screenshotDir).forEach((f) =>
-      fs.unlinkSync(path.join(screenshotDir, f))
-    );
+    // --- LÓGICA DE SCREENSHOT ATUALIZADA ---
 
-    // CÓDIGO CORRIGIDO DOS PRINTS MAIS ROBUSTO
-    for (const [i, violacao] of resultado.violations.entries()) {
-      for (const [j, node] of violacao.nodes.entries()) {
-        // Pega o primeiro seletor do array de alvos
-        const selector = Array.isArray(node.target)
-          ? node.target[0]
-          : node.target;
+    // 1. LISTA DAS REGRAS QUE NÃO PRECISAM DE SCREENSHOT
+    const pageLevelRuleIds = [
+      'emag-content-before-menu',
+      'emag-has-heading',
+      'emag-heading-hierarchy',
+      'emag-lang-attribute',
+      'emag-page-title',
+      'emag-ancoras-acesskey-unico',
+      'emag-ancoras-primeiro-link',
+      'emag-ancoras-bloco-existente',
+      'emag-ancoras-bloco',
+      'emag-semantic-landmarks-missing',
+      'emag-video-presence',
+      'emag-audio-presence',
+      'emag-video-content-presence',
+      'emag-audio-content-presence',
+      'emag-tabindex-range',
+      'emag-tabindex-presence',
+      'emag-adjacent-links-without-separation',
+      'emag-broken-links' // Adicionada para garantir que não tente tirar print de URL
+    ];
 
-        try {
-          const el = await page.$(selector);
+    for (const violacao of resultado.violations) {
+      // 2. VERIFICAÇÃO PARA PULAR REGRAS DE NÍVEL DE PÁGINA
+      if (pageLevelRuleIds.includes(violacao.id)) {
+        // Pula para a próxima violação, ignorando o loop de screenshot
+        continue; 
+      }
 
-          if (el) {
-            // Verifica se o elemento é realmente visível na página
-            const isVisible = await page.evaluate((e) => {
-              if (!e || typeof window.getComputedStyle !== "function")
-                return false;
-              const style = window.getComputedStyle(e);
-              return (
-                style &&
-                style.display !== "none" &&
-                style.visibility !== "hidden" &&
-                e.offsetParent !== null
-              );
-            }, el);
+      for (const node of violacao.nodes) {
+        const selector = Array.isArray(node.target) ? node.target[0] : node.target;
+        node.snippet = node.html;
 
-            // Só tenta tirar screenshot se o elemento for visível
-            if (isVisible) {
-              await page.addStyleTag({
-                content: `${selector} { outline: 4px solid red !important; }`,
-              });
-              await el.scrollIntoViewIfNeeded?.();
-              const filename = `violacao-${i}-${j}.png`;
-              const filepath = path.join(screenshotDir, filename);
-              await el.screenshot({ path: filepath });
-              node.screenshot = `http://localhost:3001/screenshots/${filename}`;
+        if (typeof selector === 'string' && !selector.startsWith('http')) {
+          try {
+            const el = await page.$(selector);
+            if (el) {
+              const isVisible = await el.isIntersectingViewport();
+              if (isVisible) {
+                await page.addStyleTag({ content: `${selector} { outline: 4px solid red !important; }` });
+                await el.scrollIntoViewIfNeeded?.();
+                const filename = `violacao-${violacao.id}-${Math.random()}.png`;
+                const filepath = path.join(screenshotDir, filename);
+                await el.screenshot({ path: filepath });
+                node.screenshot = `http://localhost:3001/screenshots/${filename}`;
+              }
             }
+          } catch (e) {
+            console.log(`Ignorando erro de screenshot para o seletor "${selector}": ${e.message}`);
           }
-          node.snippet = node.html;
-        } catch (e) {
-          console.log(
-            `Ignorando erro de screenshot para o seletor "${selector}": ${e.message}`
-          );
         }
       }
     }
+    
     await browser.close();
-    res.json(resultado); // retorna o resultado da execução do axe-core
+    res.json(resultado);
+
   } catch (erro) {
+    if (browser) await browser.close();
     console.error("Erro durante análise:", erro);
     res.status(500).json({ erro: erro.message });
   }
