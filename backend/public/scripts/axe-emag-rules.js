@@ -1,15 +1,6 @@
 // INICIO DOS CHECKS (TESTES)
 (() => {
   const emagChecks = [
-    // Alt nas imagens
-    {
-      id: "imagem-alt-emag",
-      evaluate: function (node) {
-        return (
-          node.hasAttribute("alt") && node.getAttribute("alt").trim() !== ""
-        );
-      },
-    },
     // Ancora para bloco 1.5.4
     {
       id: "ancora-para-bloco",
@@ -37,6 +28,10 @@
         }
         return true;
       },
+      metadata: {
+        description:
+          "Garanta que links âncora para elementos na página apontem para alvos existentes e visíveis.",
+      },
     },
     // 1.5.1
     {
@@ -47,7 +42,7 @@
       },
       metadata: {
         description:
-          "Garante que existam âncoras que permitam saltar entre seções da página.",
+          "Inclua links de pulo (âncoras) no início da página para permitir que usuários avancem direto ao conteúdo principal.",
       },
     },
 
@@ -85,6 +80,10 @@
 
         // 4. FALHOU se nenhuma das verificações acima passou.
         return false;
+      },
+      metadata: {
+        description:
+          "Garanta que o elemento tenha texto visível ou nome acessível via ARIA, title ou imagem com alt descritivo.",
       },
     },
     // 1.5.2
@@ -151,6 +150,10 @@
         const idsAceitaveis = ["conteudo", "main", "principal", "content"];
         return idsAceitaveis.includes(targetId.toLowerCase());
       },
+      metadata: {
+        description:
+          "Inclua como primeiro link visível da página uma âncora que leve diretamente ao conteúdo principal, como uma seção com id 'conteudo' ou 'main'.",
+      },
     },
     // verificando css-inline
     {
@@ -159,6 +162,10 @@
         // Se existe atributo style, retorna true
         return !node.hasAttribute("style");
       },
+      metadata: {
+        description:
+          "Evite o uso de estilos inline; utilize folhas de estilo externas ou internas para manter a separação entre conteúdo e apresentação.",
+      },
     },
     // Validar css interno
     {
@@ -166,11 +173,18 @@
       evaluate: function (node) {
         return false; // Sempre falha, pois o seletor já encontrou a violação.
       },
+      metadata: {
+        description: "Evite essa má prática, agarre-se às recomendações.",
+      },
     },
     {
       id: "css-internal-check",
       evaluate: function (node) {
         return !(node.tagName.toLowerCase() === "style");
+      },
+      metadata: {
+        description:
+          "Evite o uso de CSS interno na tag <style>; prefira folhas de estilo externas para melhor organização e reutilização.",
       },
     },
     // Presença de JavaScript inline
@@ -205,12 +219,20 @@
 
         return !eventAttributes.some((attr) => node.hasAttribute(attr));
       },
+      metadata: {
+        description:
+          "Evite o uso de manipuladores de evento inline como onclick e onload; use JavaScript externo ou adicionados via addEventListener.",
+      },
     },
     // Presença de JavaScript interno
     {
       id: "js-internal-check",
       evaluate: function (node) {
         return !(node.tagName.toLowerCase() === "script");
+      },
+      metadata: {
+        description:
+          "Evite scripts internos na página; usar JavaScript externo melhora a organização e permite melhor controle, prevenindo possíveis bloqueios que prejudicam leitores de tela e tecnologias assistivas.",
       },
     },
     // 1.3.1
@@ -222,7 +244,8 @@
         return hasHeading;
       },
       metadata: {
-        description: "Verifica se existe pelo menos um cabeçalho na página.",
+        description:
+          "Inclua pelo menos um elemento de cabeçalho (h1 a h6) na página para estruturar o conteúdo e melhorar a acessibilidade.",
       },
     },
     // 1.3.2
@@ -246,7 +269,7 @@
       },
       metadata: {
         description:
-          "Garante que os cabeçalhos seguem uma hierarquia sequencial adequada.",
+          "Mantenha a hierarquia sequencial correta dos cabeçalhos (h1, h2, h3...) sem pular níveis para melhorar a estrutura semântica.",
       },
     },
     // 1.3.4
@@ -260,7 +283,7 @@
       },
       metadata: {
         description:
-          "Garante que existem outros níveis além de <h1> se <h1> estiver presente.",
+          "Use outros níveis de cabeçalho além do <h1> para criar uma estrutura hierárquica adequada no conteúdo.",
       },
     },
     // 1.3.6
@@ -289,20 +312,10 @@
         return allH1s.length <= 1;
       },
       metadata: {
-        description: "Garante que não existam múltiplos <h1> na página.",
+        description:
+          "Use no máximo um elemento <h1> por página para manter clareza e acessibilidade na estrutura do conteúdo.",
       },
     },
-    /*
-    {
-      id: "check-multiple-h1",
-      evaluate: function (node) {
-        const h1Count = node.querySelectorAll("h1").length;
-        return h1Count <= 1;
-      },
-      metadata: {
-        description: "Garante que não existam múltiplos <h1> na página.",
-      },
-    },*/
     // 1.4.1 VERIFICAR TESTAR
     // Adicione este novo objeto ao seu array `emagChecks`
     {
@@ -336,6 +349,10 @@
         // Se o conteúdo vem primeiro, a ordem está correta.
         return true; // PASSA
       },
+      metadata: {
+        description:
+          "Posicione o menu de navegação após o conteúdo principal no DOM para melhorar a ordem lógica e a experiência de navegação por leitores de tela.",
+      },
     },
     // 1.4.3 CHECK
     {
@@ -348,7 +365,7 @@
       },
       metadata: {
         description:
-          "Garante que o bloco de conteúdo vem antes do menu no HTML.",
+          "Evite o uso do atributo tabindex para não interferir na ordem natural de navegação pelo teclado.",
       },
     },
     // 1.4.6
@@ -364,7 +381,7 @@
       },
       metadata: {
         description:
-          "Garante que os valores de tabindex estão no intervalo permitido (-1 ou 0 a 32767).",
+          "Use apenas valores de tabindex entre -1 e 32767 para manter a navegação pelo teclado acessível e previsível.",
       },
     },
     // 1.6.1 TESTAR
@@ -392,7 +409,8 @@
         };
       },
       metadata: {
-        description: "Identifica todas as tabelas presentes na página.",
+        description:
+          "Verifique se todas as tabelas estão corretamente marcadas semanticamente conforme o EMAG para garantir acessibilidade.",
         help: "EMAG 1.6.1 - Tabelas devem ser marcadas corretamente",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.6.1",
         messages: {
@@ -419,7 +437,7 @@
       },
       metadata: {
         description:
-          "Verifica se há formulários dentro de tabelas (uso estrutural inadequado de HTML).",
+          "Evite colocar formulários dentro de tabelas, pois essa prática prejudica a estrutura semântica e a acessibilidade do HTML.",
       },
     },
     // 1.7.1
@@ -453,36 +471,41 @@
         this.relatedNodes([nextEl]);
         return false; // FALHA
       },
+      metadata: {
+        description:
+          "Separe links adjacentes com texto ou elementos visuais para evitar que sejam lidos como um único link pelos leitores de tela.",
+      },
     },
 
     //1.8.1
     {
-      id: 'check-semantic-landmarks-v2',
-      evaluate: function(node) {
-        const recommendedLandmarks = ['header', 'nav', 'main', 'footer'];
+      id: "check-semantic-landmarks-v2",
+      evaluate: function (node) {
+        const recommendedLandmarks = ["header", "nav", "main", "footer"];
         const missingLandmarks = [];
-    
-        recommendedLandmarks.forEach(tag => {
+
+        recommendedLandmarks.forEach((tag) => {
           if (!document.querySelector(tag)) {
             missingLandmarks.push(`<${tag}>`);
           }
         });
-    
-        const mainIsMissing = !document.querySelector('main');
-    
+
+        const mainIsMissing = !document.querySelector("main");
+
         if (mainIsMissing) {
           // Anexa a lista de landmarks que estão faltando ao resultado.
           this.data({
-            missing: missingLandmarks
+            missing: missingLandmarks,
           });
           return false; // FALHA
         }
-    
+
         return true; // PASSA
       },
       metadata: {
-        description: "Verifica a presença de landmarks semânticas essenciais."
-      }
+        description:
+          "Inclua as landmarks semânticas essenciais como <header>, <nav>, <main> e <footer> para melhorar a estrutura e acessibilidade da página.",
+      },
     },
     {
       id: "check-link-target-blank",
@@ -492,7 +515,7 @@
       },
       metadata: {
         description:
-          "Verifica se há links com target='_blank', que abrem em nova aba ou janela.",
+          'Use target="_blank" em links que abrem nova aba, mas sempre adicione rel="noopener noreferrer", aria-label avisando que o link abre em nova aba evita que o usuário se perca, dá segurança e acessibilidade.',
       },
     },
     // 2.1.2
@@ -528,7 +551,7 @@
       },
       metadata: {
         description:
-          "Garante que funcionalidades controladas por mouse também estejam disponíveis por teclado.",
+          "Implemente eventos de teclado equivalentes aos de mouse para garantir acessibilidade a usuários que navegam sem mouse.",
       },
     },
     // 2.1.6
@@ -539,7 +562,8 @@
         return elements.length === 0;
       },
       metadata: {
-        description: "Verifica se não há uso do evento ondblclick no HTML.",
+        description:
+          "Evite usar o evento ondblclick, pois ações importantes devem ser acessíveis com um único clique e via teclado.",
       },
     },
     //2.1.8
@@ -591,20 +615,29 @@
       },
       metadata: {
         description:
-          "Garante que eventos não estejam aplicados a elementos não interativos.",
+          "Aplique eventos apenas em elementos interativos para garantir comportamento acessível e previsível.",
       },
     },
-    //2.2.1
+    //2.2.6
     {
-      id: "check-noscript-with-script",
-      evaluate: function (node) {
-        const hasScript = node.querySelectorAll("script").length > 0;
-        const hasNoScript = node.querySelectorAll("noscript").length > 0;
-        return !hasScript || hasNoScript;
+      id: "check-noscript-on-page",
+      evaluate: function(node) {
+        // Verifica se existe pelo menos um script na página
+        const hasAnyScript = document.querySelector("script") !== null;
+    
+        // Se não houver nenhum script, a regra não se aplica e passa.
+        if (!hasAnyScript) {
+          return true;
+        }
+    
+        // Se houver scripts, então procuramos por uma tag <noscript>.
+        // O teste PASSA se a tag <noscript> for encontrada.
+        const hasNoScriptTag = document.querySelector("noscript") !== null;
+        return hasNoScriptTag;
       },
       metadata: {
         description:
-          "Garante que exista um elemento <noscript> quando houver <script> na página.",
+          "Inclua um elemento <noscript> com conteúdo alternativo sempre que a página usar scripts para garantir acesso a usuários sem JavaScript.",
       },
     },
     // 2.2.2
@@ -625,7 +658,7 @@
       },
       metadata: {
         description:
-          "Garante que os elementos <object> tenham conteúdo alternativo textual.",
+          "Inclua texto alternativo dentro dos elementos <object> para garantir conteúdo acessível quando o objeto não carregar.",
       },
     },
     // 2.2.3
@@ -646,7 +679,7 @@
       },
       metadata: {
         description:
-          "Garante que os elementos <embed> tenham conteúdo alternativo textual.",
+          "Inclua texto alternativo dentro dos elementos <embed> para assegurar que o conteúdo seja acessível caso o embed não carregue.",
       },
     },
     //2.2.4
@@ -667,7 +700,7 @@
       },
       metadata: {
         description:
-          "Garante que os elementos <applet> tenham conteúdo alternativo textual.",
+          "Inclua texto alternativo dentro dos elementos <applet> para garantir acessibilidade caso o applet não seja suportado.",
       },
     },
     //2.3.1
@@ -696,7 +729,7 @@
       },
       metadata: {
         description:
-          "Verifica se a página possui atualização automática via <meta http-equiv='refresh'> ou funções JavaScript como setTimeout e setInterval.",
+          "Evite atualizações automáticas da página via meta refresh ou JavaScript para não prejudicar a experiência e a acessibilidade do usuário.",
       },
     },
     // 2.4.1
@@ -725,7 +758,7 @@
       },
       metadata: {
         description:
-          "Verifica se a página possui redirecionamento automático via <meta http-equiv='refresh'> com content ou window.location em script.",
+          "Evite redirecionamentos automáticos via meta refresh ou scripts para garantir melhor experiência e acessibilidade aos usuários.",
       },
     },
     // 2.6.1
@@ -735,7 +768,8 @@
         return node.querySelectorAll("blink").length === 0;
       },
       metadata: {
-        description: "Garante que não exista o elemento <blink> na página.",
+        description:
+          "Não use o elemento <blink>, pois ele é obsoleto e prejudica a legibilidade e acessibilidade do conteúdo.",
       },
     },
     // 2.6.2
@@ -745,7 +779,8 @@
         return node.querySelectorAll("marquee").length === 0;
       },
       metadata: {
-        description: "Garante que não exista o elemento <marquee> na página.",
+        description:
+          "Evite usar o elemento <marquee>, pois é obsoleto e prejudica a acessibilidade e usabilidade do conteúdo.",
       },
     },
     // 2.6.3
@@ -761,7 +796,7 @@
       },
       metadata: {
         description:
-          "Verifica a presença de imagens GIF que podem gerar intermitência ou movimentação na tela.",
+          "Evite usar imagens GIF animadas que causam movimentos ou intermitências que podem distrair ou prejudicar usuários sensíveis.",
       },
     },
     //3.1.1
@@ -779,7 +814,7 @@
       },
       metadata: {
         description:
-          "Verifica se o elemento HTML possui o atributo lang ou xml:lang definido.",
+          "Defina o atributo lang no elemento <html> para indicar o idioma principal da página e melhorar a acessibilidade.",
       },
     },
     // 3.2.1
@@ -797,7 +832,7 @@
       },
       metadata: {
         description:
-          "Verifica se elementos com texto visível têm atributo lang ou herdam de ancestral.",
+          "Aplique o atributo lang em elementos com texto visível ou garanta que herdaram esse atributo de um ancestral para informar o idioma correto.",
       },
     },
     //3.3
@@ -809,7 +844,8 @@
         return !!title && title.trim().length > 0;
       },
       metadata: {
-        description: "Verifica se a página possui um título não vazio.",
+        description:
+          "VInclua um título único e descritivo na página usando a tag <title> para melhorar usabilidade e SEO.",
       },
     },
     // 3.5.2
@@ -821,7 +857,8 @@
         return !urlRegex.test(linkText);
       },
       metadata: {
-        description: "Verifica se o texto do link está em formato de URL.",
+        description:
+          "Evite usar URLs como texto do link; prefira textos descritivos que indiquem o destino ou a ação do link.",
       },
     },
     // 3.5.4
@@ -835,7 +872,8 @@
         return !(hasTitle && !hasText);
       },
       metadata: {
-        description: "Verifica se o link não depende apenas do atributo title.",
+        description:
+          "Não use apenas o atributo title para descrever links; inclua texto visível para garantir acessibilidade.",
       },
     },
     // 3.5.5
@@ -853,7 +891,7 @@
       },
       metadata: {
         description:
-          "Verifica se links contendo imagens possuem texto alternativo.",
+          "Adicione texto alternativo descritivo nas imagens que funcionam como links para garantir acessibilidade.",
       },
     },
     // 3.5.6
@@ -877,62 +915,67 @@
         );
       },
       metadata: {
-        description: "Verifica se o texto do link não é genérico.",
+        description:
+          "Use textos de link específicos e descritivos em vez de termos genéricos como 'clique aqui' para melhorar a acessibilidade e usabilidade.",
       },
     },
     // 3.5.10
     {
-      id: 'check-duplicate-href-different-text-v2',
-      evaluate: function(node) {
+      id: "check-duplicate-href-different-text-v2",
+      evaluate: function (node) {
         // Usamos um nome de cache diferente para esta nova versão
         if (!window.emagHrefMap_v2) {
           window.emagHrefMap_v2 = new Map();
-          const allLinks = document.querySelectorAll('a[href]');
-          
-          allLinks.forEach(link => {
+          const allLinks = document.querySelectorAll("a[href]");
+
+          allLinks.forEach((link) => {
             const href = link.href;
             // Armazenamos o objeto completo com texto e HTML
             const linkData = {
               text: link.textContent.trim(),
-              html: link.outerHTML
+              html: link.outerHTML,
             };
-            
+
             if (!linkData.text) return;
-    
+
             if (!window.emagHrefMap_v2.has(href)) {
               window.emagHrefMap_v2.set(href, []);
             }
             window.emagHrefMap_v2.get(href).push(linkData);
           });
         }
-    
+
         const currentHref = node.href;
         const linksForThisHref = window.emagHrefMap_v2.get(currentHref);
-    
+
         if (linksForThisHref && linksForThisHref.length > 1) {
           // Verifica se realmente existem textos diferentes neste grupo
-          const uniqueTexts = new Set(linksForThisHref.map(l => l.text));
+          const uniqueTexts = new Set(linksForThisHref.map((l) => l.text));
           if (uniqueTexts.size > 1) {
             // VIOLAÇÃO! Anexa a lista completa de objetos de link conflitantes.
             this.data({
               message: `O destino ${currentHref} é usado por links com ${uniqueTexts.size} textos diferentes.`,
-              conflictingLinks: linksForThisHref 
+              conflictingLinks: linksForThisHref,
             });
             return false; // FALHA
           }
         }
         return true; // PASSA
-      }
+      },
+      metadata: {
+        description:
+          "Evite usar o mesmo link (href) com textos diferentes para não confundir usuários e melhorar a clareza dos links.",
+      },
     },
     //3.5.11
     {
-      id: 'check-same-text-different-href-cached-v2',
-      evaluate: function(node) {
+      id: "check-same-text-different-href-cached-v2",
+      evaluate: function (node) {
         // Cria o mapa de links na primeira execução (lógica de cache)
         if (!window.emagLinkMap) {
           window.emagLinkMap = new Map();
-          const allLinks = document.querySelectorAll('a[href]');
-          allLinks.forEach(link => {
+          const allLinks = document.querySelectorAll("a[href]");
+          allLinks.forEach((link) => {
             const text = link.textContent.trim();
             if (!text) return;
             if (!window.emagLinkMap.has(text)) {
@@ -941,39 +984,43 @@
             window.emagLinkMap.get(text).add(link.href);
           });
         }
-    
+
         const currentText = node.textContent.trim();
         if (!currentText) {
           return true; // Passa em links sem texto
         }
-    
+
         const hrefsForThisText = window.emagLinkMap.get(currentText);
-    
+
         if (hrefsForThisText && hrefsForThisText.size > 1) {
           // VIOLAÇÃO ENCONTRADA!
           // Agora, vamos coletar os dados de todos os links conflitantes.
-          const allLinksWithThisText = Array.from(document.querySelectorAll('a[href]')).filter(
-            link => link.textContent.trim() === currentText
-          );
-          
-          const duplicatesData = allLinksWithThisText.map(link => {
+          const allLinksWithThisText = Array.from(
+            document.querySelectorAll("a[href]")
+          ).filter((link) => link.textContent.trim() === currentText);
+
+          const duplicatesData = allLinksWithThisText.map((link) => {
             return {
               href: link.href,
-              html: link.outerHTML
+              html: link.outerHTML,
             };
           });
-    
+
           // Anexa a lista de duplicatas ao resultado deste nó específico.
           this.data({
             message: `Este link usa o texto '${currentText}', que está associado a ${hrefsForThisText.size} URLs diferentes.`,
-            duplicates: duplicatesData
+            duplicates: duplicatesData,
           });
-          
+
           return false; // FALHA
         }
-    
+
         return true; // PASSA
-      }
+      },
+      metadata: {
+        description:
+          "Evite usar o mesmo texto de link para URLs diferentes para não confundir usuários e melhorar a clareza da navegação.",
+      },
     },
     //3.5.12
     {
@@ -993,7 +1040,7 @@
         return title.toLowerCase() !== text.toLowerCase();
       },
       metadata: {
-        description: "Verifica se o title é igual ao texto do link.",
+        description: "Evite usar o mesmo texto no atributo title e no conteúdo visível do link para não gerar redundância desnecessária.",
       },
     },
     // 3.5.13
@@ -1004,7 +1051,7 @@
         return text.length <= 500;
       },
       metadata: {
-        description: "Verifica se o texto do link é muito longo.",
+        description: "Mantenha o texto dos links conciso, evitando textos excessivamente longos para facilitar a leitura e navegação.",
       },
     },
     // 3.5.15
@@ -1021,7 +1068,7 @@
         return true;
       },
       metadata: {
-        description: "Verifica se o URL está mal formatado.",
+        description: "Use URLs corretamente formatadas com protocolos válidos para evitar erros de navegação e problemas de acessibilidade.",
       },
     },
     //3.6.2
@@ -1040,7 +1087,7 @@
       },
       metadata: {
         description:
-          "Verifica se imagens informativas possuem atributo alt descritivo.",
+          "Forneça texto alternativo descritivo para imagens informativas; use alt vazio apenas para imagens decorativas.",
       },
     },
     //3.6.3 CHECK
@@ -1056,7 +1103,7 @@
         return altText !== filename;
       },
       metadata: {
-        description: "Verifica se o alt não é igual ao nome do arquivo.",
+        description: "Evite usar o nome do arquivo como texto alternativo; crie descrições significativas para as imagens.",
       },
     },
     //3.6.4
@@ -1074,6 +1121,9 @@
           "alt",
           "imagem de",
           "foto de",
+          "leia mais",
+          "saiba mais",
+          "img"
         ];
 
         return !genericTerms.some(
@@ -1081,7 +1131,7 @@
         );
       },
       metadata: {
-        description: "Verifica se o alt não contém termos genéricos.",
+        description: "Evite usar termos genéricos como 'imagem' ou 'foto' no alt; prefira descrições específicas e significativas.",
       },
     },
     //3.6.7
@@ -1104,7 +1154,7 @@
         );
       },
       metadata: {
-        description: "Verifica se imagens com mesmo alt têm src diferente.",
+        description: "Não use o mesmo texto alternativo em imagens diferentes para evitar confusão e garantir clareza no conteúdo.",
         help: "EMAG 3.1 6.6.7 - Imagens diferentes não devem ter o mesmo texto alternativo.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r6.6.7",
       },
@@ -1118,7 +1168,7 @@
         return alt !== title;
       },
       metadata: {
-        description: "Verifica se alt e title não são idênticos.",
+        description: "Evite usar o mesmo texto nos atributos alt e title para imagens, garantindo descrições distintas e úteis.",
       },
     },
     // 3.7.1
@@ -1140,7 +1190,7 @@
       },
       metadata: {
         description:
-          "Verifica se imagens com usemap e áreas de mapa possuem descrição alternativa.",
+          "Forneça texto alternativo para imagens com mapas (usemap) e descrições em áreas (<area>) para garantir acessibilidade.",
       },
     },
     // 3.9.1
@@ -1161,7 +1211,7 @@
         return isLayoutTable || hasCaption || hasSummary;
       },
       metadata: {
-        description: "Verifica se tabelas de dados possuem caption ou summary.",
+        description: "Inclua um <caption> ou atributo summary em tabelas de dados para descrever seu conteúdo e melhorar a acessibilidade.",
       },
     },
     //3.10.1
@@ -1195,7 +1245,7 @@
       },
       metadata: {
         description:
-          "Verifica se tabelas de dados possuem células adequadamente associadas.",
+          "Associe corretamente células de dados e cabeçalhos em tabelas usando atributos como scope, headers e ids para garantir acessibilidade.",
       },
     },
     // 3.11.2
@@ -1205,7 +1255,7 @@
         return node.getAttribute("align") !== "justify";
       },
       metadata: {
-        description: "Verifica se parágrafos não usam align='justify'.",
+        description: "Evite usar align='justify' para alinhamento de texto, pois dificulta a leitura e prejudica a acessibilidade.",
       },
     },
     //3.11.3
@@ -1217,7 +1267,7 @@
       },
       metadata: {
         description:
-          "Verifica se parágrafos não usam text-align: justify via CSS.",
+          "Evite usar text-align: justify no CSS, pois o texto justificado pode prejudicar a legibilidade e a acessibilidade.",
       },
     },
     // 3.12.1
@@ -1236,7 +1286,7 @@
       },
       metadata: {
         description:
-          "Verifica se elementos de sigla/abreviação possuem título descritivo.",
+          "Adicione o atributo title com a descrição completa em elementos <abbr> ou <acronym> para explicar siglas e abreviações.",
       },
     },
     //4.4.1
@@ -1264,7 +1314,7 @@
       },
       metadata: {
         description:
-          "Verifica se elementos focalizáveis têm estilo de foco visível.",
+          "Assegure que todos os elementos focáveis possuam estilos visíveis de foco para facilitar a navegação por teclado.",
       },
     },
     {
@@ -1299,7 +1349,7 @@
       },
       metadata: {
         description:
-          "Verifica estilos visíveis para :focus-visible em elementos focalizáveis.",
+          "Garanta que todos os elementos focáveis possuam estilos visíveis e claros no estado :focus-visible para facilitar a navegação por teclado.",
       },
     },
     //5.1.1
@@ -1330,7 +1380,7 @@
         );
       },
       metadata: {
-        description: "Verifica se a página contém elementos de vídeo.",
+        description: "Verifique se a página contém vídeos para garantir que conteúdos multimídia sejam considerados na acessibilidade.",
       },
     },
     //5.2.1
@@ -1363,7 +1413,7 @@
         );
       },
       metadata: {
-        description: "Verifica se a página contém elementos de áudio.",
+        description: "Verifique se a página contém elementos de áudio para garantir que o conteúdo multimídia seja acessível.",
       },
     },
     //5.3.1
@@ -1410,7 +1460,7 @@
         );
       },
       metadata: {
-        description: "Verifica se existem elementos de vídeo na página.",
+        description: "Detecte se a página contém vídeos em qualquer formato ou via iframe para considerar acessibilidade multimídia.",
       },
     },
     //5.4.1
@@ -1472,7 +1522,7 @@
         );
       },
       metadata: {
-        description: "Verifica se existem elementos de áudio na página.",
+        description: "Verifique se a página contém elementos ou players de áudio para garantir o tratamento adequado do conteúdo multimídia.",
       },
     },
     // 6.2.1
@@ -1509,7 +1559,7 @@
       },
       metadata: {
         description:
-          "Verifica se elementos de formulário têm labels acessíveis.",
+          "Associe um label acessível a todos os elementos de formulário usando <label>, aria-label, aria-labelledby ou title.",
       },
     },
     //6.3.1
@@ -1543,7 +1593,7 @@
         return invalidElements.length === 0;
       },
       metadata: {
-        description: "Verifica uso apropriado de tabindex em formulários.",
+        description: "Use tabindex apenas para controlar a ordem de foco em elementos que não são naturalmente focalizáveis dentro dos formulários.",
       },
     },
     //6.4.1
@@ -1582,7 +1632,7 @@
       },
       metadata: {
         description:
-          "Verifica uso de eventos de teclado/foco em elementos de formulário.",
+          "Evite usar eventos de teclado e foco inline em elementos de formulário, prefira gerenciar eventos via JavaScript externo para maior acessibilidade e manutenção.",
       },
     },
     //6.4.2
@@ -1625,30 +1675,38 @@
       },
       metadata: {
         description:
-          "Verifica uso de eventos de mouse/drag em elementos de formulário.",
+          "Evite o uso de eventos inline de mouse e drag em elementos de formulário para garantir acessibilidade e melhor suporte a teclado.",
       },
     },
     //6.7.1
     {
-      id: "check-fieldset-grouping",
-      evaluate: function (node) {
-        // Ignora formulários sem campos relevantes
-        const formControls = node.querySelectorAll(
-          'input:not([type="hidden"]), textarea, select, button'
-        );
-        if (formControls.length < 2) return true;
-
-        // Verifica se há fieldsets ou agrupamentos ARIA
+      id: "check-fieldset-grouping-v2",
+      evaluate: function(node) {
+        const textInputs = node.querySelectorAll('input[type="text"], input[type="password"], input[type="email"], input[type="tel"], input[type="url"], input[type="search"], textarea, select').length;
+        const radioButtons = node.querySelectorAll('input[type="radio"]').length;
+        const checkboxes = node.querySelectorAll('input[type="checkbox"]').length;
+        
+        // Um formulário PRECISA de agrupamento se tiver:
+        // - Mais de 1 campo de texto/select/textarea, OU
+        // - Mais de 1 botão de rádio, OU
+        // - Mais de 1 caixa de seleção.
+        const requiresGrouping = (textInputs > 1) || (radioButtons > 1) || (checkboxes > 1);
+        
+        // Se, pela lógica acima, o formulário não precisa de agrupamento, o teste passa.
+        if (!requiresGrouping) {
+          return true;
+        }
+        
+        // Se ele PRECISA de agrupamento, então verificamos se ele tem <fieldset> ou role="group".
         const hasFieldset = node.querySelector("fieldset") !== null;
-        const hasAriaGroup =
-          node.querySelector('[role="group"], [role="radiogroup"]') !== null;
-
+        const hasAriaGroup = node.querySelector('[role="group"], [role="radiogroup"]') !== null;
+        
+        // O teste passa se um elemento de agrupamento for encontrado.
         return hasFieldset || hasAriaGroup;
       },
       metadata: {
-        description:
-          "Verifica se formulários com múltiplos campos têm agrupamento lógico.",
-      },
+        description: "Verifica se formulários com grupos de campos relacionados possuem <fieldset> ou um agrupamento ARIA."
+      }
     },
     //6.7.2
     {
@@ -1677,7 +1735,7 @@
       },
       metadata: {
         description:
-          "Verifica se selects complexos têm optgroup ou agrupamento ARIA.",
+          "Agrupe opções em selects complexos usando <optgroup> ou roles ARIA para facilitar a navegação e compreensão.",
       },
     },
   ];
@@ -1701,12 +1759,12 @@
     {
       id: "emag-fieldset-grouping",
       selector: "form",
-      any: ["check-fieldset-grouping"],
+      any: ["check-fieldset-grouping-v2"], // <-- Usando o novo check
       enabled: true,
       tags: ["emag", "form", "grouping", "acessibilidade"],
       impact: "minor",
       metadata: {
-        help: "EMAG 3.1 6.7.1 - Formulários complexos devem usar fieldset para agrupamento.",
+        help: "EMAG 3.1 6.7.1 - Formulários complexos ou com grupos de campos devem usar <fieldset> para agrupamento.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r6.7.1",
       },
     },
@@ -2019,7 +2077,7 @@
       tags: ["emag", "image", "acessibilidade"],
       impact: "serious",
       metadata: {
-        help: "EMAG 3.1 3.6.2 - Imagens informativas devem ter atributo alt descritivo.",
+        help: "EMAG 3.1 3.6.2 - Adicione um atributo alt com texto descritivo em todas as imagens para garantir acessibilidade.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.6",
       },
     },
@@ -2030,7 +2088,7 @@
       any: ["check-malformed-urls"],
       enabled: true,
       tags: ["emag", "link", "acessibilidade"],
-      impact: "moderate",
+      impact: "minor",
       metadata: {
         help: "EMAG 3.1 3.5.15 - Evitar URLs mal formatadas ou protocolos inseguros.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
@@ -2069,41 +2127,43 @@
       id: "emag-same-text-different-href",
       selector: "a[href]",
       enabled: true,
-      tags: ['emag', 'link'],
-      impact: 'serious',
-      all: ['check-same-text-different-href-cached-v2'], // <-- Use o novo check aqui
-      
-      after: function(results) {
+      tags: ["emag", "link"],
+      impact: "serious",
+      all: ["check-same-text-different-href-cached-v2"], // <-- Use o novo check aqui
+
+      after: function (results) {
         delete window.emagLinkMap;
         return results;
       },
-    
+
       metadata: {
-        description: "Links com o mesmo texto devem apontar para o mesmo destino.",
+        description:
+          "Links com o mesmo texto devem apontar para o mesmo destino.",
         help: "EMAG 3.1 R3.5.11 - Evitar links com mesmo texto para destinos diferentes.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
-      }
+      },
     },
     // 3.5.10 TESTE
     {
       id: "emag-duplicate-href-different-text",
       selector: "a[href]",
       enabled: true,
-      tags: ['emag', 'link'],
-      impact: 'serious',
-      all: ['check-duplicate-href-different-text-v2'], // <-- Usando o novo check
-      
+      tags: ["emag", "link"],
+      impact: "serious",
+      all: ["check-duplicate-href-different-text-v2"], // <-- Usando o novo check
+
       // Função de limpeza para o novo cache
-      after: function(results) {
+      after: function (results) {
         delete window.emagHrefMap_v2;
         return results;
       },
-    
+
       metadata: {
-        description: "Links com o mesmo destino (href) não devem ter textos diferentes.",
+        description:
+          "Links com o mesmo destino (href) não devem ter textos diferentes.",
         help: "EMAG 3.1 R3.5.10 - Evitar links com mesmo destino e textos diferentes.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
-      }
+      },
     },
     // 3.5.6 CHECK
     {
@@ -2370,20 +2430,20 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r2.2",
       },
     },
-    // 2.2.1 CHECK
+    // 2.2.6 CHECK
     {
       id: "emag-noscript-with-script",
-      selector: "script",
-      any: ["check-noscript-with-script"],
+      selector: "html",
+      any: ["check-noscript-on-page"],
       all: [],
       none: [],
       enabled: true,
-      tags: ["emag", "html", "alternatives"],
+      tags: ["emag", "interaction"],
       impact: "serious",
       metadata: {
         description:
-          "Verifica se há elemento <script> sem um <noscript> como alternativa.",
-        help: "EMAG 3.1 R2.2.1 - Páginas que usam scripts devem fornecer alternativas com <noscript>.",
+          "Páginas que usam scripts para exibir conteúdo ou funcionalidade devem fornecer uma alternativa acessível com <noscript>.",
+        help: "EMAG 3.1 R2.2.6 - Páginas que usam scripts devem fornecer alternativas com <noscript>.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r2.2",
       },
     },
@@ -2469,7 +2529,8 @@
       any: [],
       none: [],
       metadata: {
-        description: "Verifica se landmarks essenciais como <main> estão presentes e lista outras recomendadas que estão ausentes.",
+        description:
+          "Verifica se landmarks essenciais como <main> estão presentes e lista outras recomendadas que estão ausentes.",
         help: "EMAG 3.1 R1.8.3 - Utilize landmarks semânticas (header, footer, nav, main) para estruturar o conteúdo.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.8",
       },
@@ -2524,23 +2585,7 @@
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.6",
       },
     },
-    // 3.6.1 CHECK
-    {
-      id: "img-sem-alt-emag",
-      selector: "img",
-      any: ["imagem-alt-emag"],
-      all: [],
-      none: [],
-      enabled: true,
-      tags: ["emag", "wcag2a", "imagem"],
-      impact: "serious",
-      metadata: {
-        description:
-          "Deve ser fornecida uma descrição para as imagens da página, utilizando-se, para tanto o atributo alt.",
-        help: "EMAG 3.1 R3.6.1 - Imagem sem declaração do atributo ALT.",
-        helpUrl: "https://emag.governoeletronico.gov.br/#r3.6",
-      },
-    },
+
     // 1.5.1 CHECK tem que revisar isso ai talvez precise separar como as outras // precisa separar
     {
       id: "emag-ancoras-bloco",

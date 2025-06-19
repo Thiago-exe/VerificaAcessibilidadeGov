@@ -160,7 +160,7 @@ function App() {
   return (
     <div style={{ padding: "2rem", backgroundColor: "#1e1e1e", color: "white", minHeight: "100vh" }}>
       <button className={`back-to-top-btn ${showScroll ? 'show' : ''}`} onClick={scrollTop} aria-label="Voltar ao topo" title="Voltar ao topo">▲</button>
-      <h1>Teste de Acessibilidade eMAG</h1>
+      <h1>Validador de Acessibilidade Web em Governo - VAWG</h1>
       <input type="text" placeholder="https://www.exemplo.com" value={url} onChange={(e) => setUrl(e.target.value)} style={{ width: "300px", marginRight: "1rem", padding: "0.5rem" }} />
       <div style={{ margin: '1rem 0' }}>
         <label style={{ marginRight: '1rem' }}><input type="radio" value="emag" checked={runMode === 'emag'} onChange={e => setRunMode(e.target.value)} /> Apenas eMAG</label>

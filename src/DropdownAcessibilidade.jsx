@@ -1,18 +1,28 @@
 import React, { useState } from "react";
 
+const traduzirImpacto = (impacto) => {
+  const mapaDeImpacto = {
+    minor: "Menor",
+    moderate: "Moderado",
+    serious: "Sério",
+    critical: "Crítico",
+  };
+  return mapaDeImpacto[impacto] || impacto; // Retorna a tradução ou o original se não encontrar
+};
+
 function DropdownAcessibilidade({ titulo, itens }) {
   const [aberto, setAberto] = useState(false);
   const getBadgeColor = () => {
     if (titulo.includes("Erros")) {
-      return '#e53935'; // Vermelho
+      return "#e53935"; // Vermelho
     }
     if (titulo.includes("Avisos")) {
-      return '#ffb300'; // Laranja
+      return "#ffb300"; // Laranja
     }
     if (titulo.includes("Aprovadas")) {
-      return '#43a047'; // Verde
+      return "#43a047"; // Verde
     }
-    return '#666'; // Cinza
+    return "#666"; // Cinza
   };
 
   const badgeColor = getBadgeColor();
@@ -94,7 +104,7 @@ function DropdownAcessibilidade({ titulo, itens }) {
                   <strong>Descrição:</strong> {item.description}
                 </p>
                 <p>
-                  <strong>Impacto:</strong> {item.impact}
+                  <strong>Impacto:</strong> {traduzirImpacto(item.impact)}
                 </p>
                 <p>
                   <strong>Ajuda:</strong>{" "}
