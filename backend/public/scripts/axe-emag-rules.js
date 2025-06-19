@@ -457,22 +457,38 @@
 
     //1.8.1
     {
-      id: "check-semantic-landmarks-missing",
-      evaluate: function (node) {
-        const landmarks = [
-          "header",
-          "footer",
-          "section",
-          "aside",
-          "nav",
-          "article",
-        ];
-        return !landmarks.some((tag) => node.querySelector(tag));
+      id: 'check-semantic-landmarks-v2',
+      evaluate: function(node) {
+        // Lista de landmarks essenciais ou fortemente recomendadas. Adicionamos <main>.
+        const recommendedLandmarks = ['header', 'nav', 'main', 'footer'];
+        const missingLandmarks = [];
+    
+        // Verifica quais landmarks da nossa lista estão faltando na página
+        recommendedLandmarks.forEach(tag => {
+          if (!document.querySelector(tag)) {
+            missingLandmarks.push(`<${tag}>`);
+          }
+        });
+    
+        // Condição de falha: consideramos uma falha grave se a landmark <main> estiver faltando,
+        // pois é a mais crítica para a estrutura do conteúdo.
+        const mainIsMissing = !document.querySelector('main');
+    
+        if (mainIsMissing) {
+          // Anexa a lista completa de landmarks recomendadas que estão faltando
+          // para que o relatório seja bem informativo.
+          this.data({
+            missing: missingLandmarks
+          });
+          return false; // FALHA
+        }
+    
+        // Se <main> existe, consideramos que a estrutura mínima foi atendida.
+        return true; // PASSA
       },
       metadata: {
-        description:
-          "Garante que há ausência total de landmarks semânticas (header, footer, section, aside, nav, article).",
-      },
+        description: "Verifica a presença de landmarks semânticas essenciais."
+      }
     },
     {
       id: "check-link-target-blank",
@@ -872,59 +888,98 @@
     },
     // 3.5.10
     {
-      id: "check-duplicate-href-different-text",
-      evaluate: function () {
-        const links = Array.from(document.querySelectorAll("a[href]"));
-        const hrefMap = new Map();
-        let hasViolation = false;
-
-        links.forEach((link) => {
-          const href = link.href.trim(); // Mantém âncoras, respeita o destino completo
-          const text = link.innerText.trim().replace(/\s+/g, " "); // Texto visível
-
-          if (hrefMap.has(href)) {
-            const previousText = hrefMap.get(href);
-            if (previousText !== text) {
-              console.log(
-                `⚠️ Violação detectada: href "${href}" com textos "${previousText}" e "${text}"`
-              );
-              hasViolation = true;
+      id: 'check-duplicate-href-different-text-v2',
+      evaluate: function(node) {
+        // Usamos um nome de cache diferente para esta nova versão
+        if (!window.emagHrefMap_v2) {
+          window.emagHrefMap_v2 = new Map();
+          const allLinks = document.querySelectorAll('a[href]');
+          
+          allLinks.forEach(link => {
+            const href = link.href;
+            // Armazenamos o objeto completo com texto e HTML
+            const linkData = {
+              text: link.textContent.trim(),
+              html: link.outerHTML
+            };
+            
+            if (!linkData.text) return;
+    
+            if (!window.emagHrefMap_v2.has(href)) {
+              window.emagHrefMap_v2.set(href, []);
             }
-          } else {
-            hrefMap.set(href, text);
+            window.emagHrefMap_v2.get(href).push(linkData);
+          });
+        }
+    
+        const currentHref = node.href;
+        const linksForThisHref = window.emagHrefMap_v2.get(currentHref);
+    
+        if (linksForThisHref && linksForThisHref.length > 1) {
+          // Verifica se realmente existem textos diferentes neste grupo
+          const uniqueTexts = new Set(linksForThisHref.map(l => l.text));
+          if (uniqueTexts.size > 1) {
+            // VIOLAÇÃO! Anexa a lista completa de objetos de link conflitantes.
+            this.data({
+              message: `O destino ${currentHref} é usado por links com ${uniqueTexts.size} textos diferentes.`,
+              conflictingLinks: linksForThisHref 
+            });
+            return false; // FALHA
           }
-        });
-
-        return !hasViolation;
-      },
-      metadata: {
-        description:
-          "Verifica se links com mesmo destino têm textos diferentes.",
-      },
+        }
+        return true; // PASSA
+      }
     },
     //3.5.11
     {
-      id: "check-same-text-different-href",
-      evaluate: function (node, options, virtualNode) {
-        const text = virtualNode.children
-          .reduce((acc, child) => {
-            return child.actualNode.nodeType === 3
-              ? acc + child.actualNode.textContent
-              : acc;
-          }, "")
-          .trim();
-        if (!text) return true; // Não analisa texto vazio
-        const links = Array.from(document.querySelectorAll(`a[href]`));
-        const sameTextLinks = links.filter(
-          (l) => l.textContent.trim() === text && l.href !== node.href
-        );
-
-        return sameTextLinks.length === 0;
-      },
-      metadata: {
-        description:
-          "Verifica se existem outros links com mesmo texto para destinos diferentes.",
-      },
+      id: 'check-same-text-different-href-cached-v2',
+      evaluate: function(node) {
+        // Cria o mapa de links na primeira execução (lógica de cache)
+        if (!window.emagLinkMap) {
+          window.emagLinkMap = new Map();
+          const allLinks = document.querySelectorAll('a[href]');
+          allLinks.forEach(link => {
+            const text = link.textContent.trim();
+            if (!text) return;
+            if (!window.emagLinkMap.has(text)) {
+              window.emagLinkMap.set(text, new Set());
+            }
+            window.emagLinkMap.get(text).add(link.href);
+          });
+        }
+    
+        const currentText = node.textContent.trim();
+        if (!currentText) {
+          return true; // Passa em links sem texto
+        }
+    
+        const hrefsForThisText = window.emagLinkMap.get(currentText);
+    
+        if (hrefsForThisText && hrefsForThisText.size > 1) {
+          // VIOLAÇÃO ENCONTRADA!
+          // Agora, vamos coletar os dados de todos os links conflitantes.
+          const allLinksWithThisText = Array.from(document.querySelectorAll('a[href]')).filter(
+            link => link.textContent.trim() === currentText
+          );
+          
+          const duplicatesData = allLinksWithThisText.map(link => {
+            return {
+              href: link.href,
+              html: link.outerHTML
+            };
+          });
+    
+          // Anexa a lista de duplicatas ao resultado deste nó específico.
+          this.data({
+            message: `Este link usa o texto '${currentText}', que está associado a ${hrefsForThisText.size} URLs diferentes.`,
+            duplicates: duplicatesData
+          });
+          
+          return false; // FALHA
+        }
+    
+        return true; // PASSA
+      }
     },
     //3.5.12
     {
@@ -2018,28 +2073,43 @@
     // 3.5.11 TESTE
     {
       id: "emag-same-text-different-href",
-      selector: "a[href]", // Alterado para selector
-      any: ["check-same-text-different-href"],
+      selector: "a[href]",
       enabled: true,
-      tags: ["emag", "link", "acessibilidade"],
-      impact: "serious",
-      metadata: {
-        help: "EMAG 3.1 3.5.11 - Evitar links com mesmo texto para destinos diferentes.",
-        helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
+      tags: ['emag', 'link'],
+      impact: 'serious',
+      all: ['check-same-text-different-href-cached-v2'], // <-- Use o novo check aqui
+      
+      after: function(results) {
+        delete window.emagLinkMap;
+        return results;
       },
+    
+      metadata: {
+        description: "Links com o mesmo texto devem apontar para o mesmo destino.",
+        help: "EMAG 3.1 R3.5.11 - Evitar links com mesmo texto para destinos diferentes.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
+      }
     },
     // 3.5.10 TESTE
     {
       id: "emag-duplicate-href-different-text",
-      selector: "a[href]", // Alterado para selector
-      any: ["check-duplicate-href-different-text"],
+      selector: "a[href]",
       enabled: true,
-      tags: ["emag", "link", "acessibilidade"],
-      impact: "serious",
-      metadata: {
-        help: "EMAG 3.1 3.5.10 - Evitar links com mesmo destino e textos diferentes.",
-        helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
+      tags: ['emag', 'link'],
+      impact: 'serious',
+      all: ['check-duplicate-href-different-text-v2'], // <-- Usando o novo check
+      
+      // Função de limpeza para o novo cache
+      after: function(results) {
+        delete window.emagHrefMap_v2;
+        return results;
       },
+    
+      metadata: {
+        description: "Links com o mesmo destino (href) não devem ter textos diferentes.",
+        help: "EMAG 3.1 R3.5.10 - Evitar links com mesmo destino e textos diferentes.",
+        helpUrl: "https://emag.governoeletronico.gov.br/#r3.5",
+      }
     },
     // 3.5.6 CHECK
     {
@@ -2398,16 +2468,15 @@
     {
       id: "emag-semantic-landmarks-missing",
       selector: "html",
-      any: ["check-semantic-landmarks-missing"],
-      all: [],
-      none: [],
       enabled: true,
-      tags: ["emag", "html", "semantics"],
-      impact: "minor",
+      tags: ["emag", "html", "semantics", "structure"],
+      impact: "moderate", // O impacto é moderado, pois a ausência de <main> é significativa
+      all: ["check-semantic-landmarks-v2"], // Usa o novo check
+      any: [],
+      none: [],
       metadata: {
-        description:
-          "Verifica se há ausência de landmarks semânticas HTML5 como header, footer, section, aside, nav ou article.",
-        help: "EMAG 3.1 R1.8.3 - Utilize landmarks semânticas (header, footer, section, aside, nav, article) para estruturar o conteúdo.",
+        description: "Verifica se landmarks essenciais como <main> estão presentes e lista outras recomendadas que estão ausentes.",
+        help: "EMAG 3.1 R1.8.3 - Utilize landmarks semânticas (header, footer, nav, main) para estruturar o conteúdo.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.8",
       },
     },
@@ -2580,7 +2649,7 @@
       metadata: {
         description:
           "Verifica se elementos textuais como parágrafos, cabeçalhos e links não estão vazios, a menos que tenham um nome acessível alternativo.",
-        help: "eMAG 1.2. - Presença de tags HTML sem atributo e conteúdo de texto.",
+        help: "eMAG 1.2.3 - Presença de tags HTML sem atributo e conteúdo de texto.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.2.3",
       },
     },
@@ -2790,12 +2859,12 @@
       // Estamos dizendo ao Axe para pegar a regra nativa 'color-contrast'
       // e adicionar a tag 'emag' a ela.
       {
-        id: 'color-contrast', 
-        tags: ['emag', 'color']
+        id: "color-contrast",
+        tags: ["emag", "color"],
       },
-      
+
       // O operador '...' pega todas as suas outras regras customizadas e as adiciona à configuração.
-      ...emagRules 
+      ...emagRules,
     ],
   });
 })();

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import DropdownAcessibilidade from "./DropdownAcessibilidade";
 
 const CATEGORIAS_EMAG = {
@@ -41,56 +41,10 @@ const groupResultsByCategory = (results) => {
   return grouped;
 };
 
-// --- NOVA LÓGICA DE PONTUAÇÃO ---
-
-// 1. LISTA DE REGRAS CONSIDERADAS MAIS CRÍTICAS
 const REGRAS_CRITICAS = [
-  'color-contrast',           // Contraste é fundamental
-  'emag-input-label',         // Formulários inacessíveis quebram a funcionalidade
-  'emag-no-empty-tag',        // Elementos sem nome são barreiras
-  'emag-heading-hierarchy',   // Essencial para navegação com leitor de tela
-  'emag-mouse-only-events'    // Impede o uso por teclado
+  'color-contrast', 'emag-input-label', 'emag-no-empty-tag', 
+  'emag-heading-hierarchy', 'emag-mouse-only-events', 'img-sem-alt-emag', 'emag-img-alt', 'emag-img-generic-alt'
 ];
-
-// 2. FUNÇÃO QUE CALCULA A NOVA PORCENTAGEM
-const calcularPorcentagemEmag = (resultados) => {
-  if (!resultados) return "100.0";
-
-  const pesos = {
-    padrao: 1,  // Peso para um erro 'serious' comum
-    critico: 5  // Peso para um erro 'serious' da nossa lista de regras críticas
-  };
-
-  const regrasSerious = [
-    ...resultados.violations.filter(r => r.impact === 'serious'),
-    ...resultados.passes.filter(r => r.impact === 'serious')
-  ];
-
-  if (regrasSerious.length === 0) {
-    return "100.0"; // Se nenhuma regra 'serious' foi aplicável, a conformidade é total.
-  }
-
-  let totalPontosPossiveis = 0;
-  regrasSerious.forEach(regra => {
-    totalPontosPossiveis += REGRAS_CRITICAS.includes(regra.id) ? pesos.critico : pesos.padrao;
-  });
-
-  let pontosPerdidos = 0;
-  resultados.violations.forEach(violacao => {
-    if (violacao.impact === 'serious') {
-      pontosPerdidos += REGRAS_CRITICAS.includes(violacao.id) ? pesos.critico : pesos.padrao;
-    }
-  });
-  
-  if (totalPontosPossiveis === 0) {
-    return "100.0";
-  }
-
-  const porcentagem = ((totalPontosPossiveis - pontosPerdidos) / totalPontosPossiveis) * 100;
-  
-  return Math.max(0, porcentagem).toFixed(1);
-};
-
 
 function App() {
   const [url, setUrl] = useState("");
@@ -98,6 +52,26 @@ function App() {
   const [carregando, setCarregando] = useState(false);
   const [runMode, setRunMode] = useState('emag');
   const [activeTab, setActiveTab] = useState("Marcação");
+  const [showScroll, setShowScroll] = useState(false);
+  // 1. NOVO ESTADO PARA CONTROLAR O TIPO DE PONTUAÇÃO
+  const [scoringMode, setScoringMode] = useState('emagPonderado'); // 'simples' ou 'emagPonderado'
+
+  const checkScrollTop = () => {
+    if (!showScroll && window.pageYOffset > 400){
+      setShowScroll(true);
+    } else if (showScroll && window.pageYOffset <= 400){
+      setShowScroll(false);
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener('scroll', checkScrollTop);
+    return () => window.removeEventListener('scroll', checkScrollTop);
+  }, [showScroll]);
+
+  const scrollTop = () => {
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  };
 
   const filtrarRegrasEmag = (itens) => {
     if (!itens) return [];
@@ -130,48 +104,98 @@ function App() {
 
   const groupedResults = useMemo(() => groupResultsByCategory(resultados), [resultados]);
 
+  // Hook 'useMemo' para calcular o resumo apenas quando os resultados mudarem
   const resumo = useMemo(() => {
     if (!resultados) return {};
-    const erros = resultados.violations.filter(v => v.impact === 'serious').length;
-    const avisos = resultados.violations.filter(v => v.impact !== 'serious').length + resultados.incomplete.length;
-    const aprovadas = resultados.passes.length;
-    const inaplicaveis = resultados.inapplicable.length;
-    const totalAvaliadas = erros + avisos + aprovadas + inaplicaveis;
-    const porcentagemEMAG = calcularPorcentagemEmag(resultados);
+    
+    // Contagens básicas
+    const violations = resultados.violations;
+    const passes = resultados.passes;
+    const incomplete = resultados.incomplete;
+    const inapplicable = resultados.inapplicable;
 
-    return { erros, avisos, aprovadas, inaplicaveis, totalAvaliadas, porcentagemEMAG };
+    const errosCount = violations.filter(v => v.impact === 'serious').length;
+    const avisosCount = violations.filter(v => v.impact !== 'serious').length + incomplete.length;
+    const aprovadasCount = passes.length;
+    const inaplicaveisCount = inapplicable.length;
+
+    // Lógica para Porcentagem Simples
+    const totalAplicaveisSimples = violations.length + passes.length + incomplete.length;
+    const porcentagemSimples = totalAplicaveisSimples > 0
+      ? ((aprovadasCount / totalAplicaveisSimples) * 100).toFixed(1)
+      : "100.0";
+
+    // Lógica para Porcentagem Ponderada eMAG
+    const pesos = { padrao: 1, critico: 5 };
+    const regrasSeriousAplicaveis = [
+      ...violations.filter(r => r.impact === 'serious'),
+      ...passes.filter(r => r.impact === 'serious')
+    ];
+    let totalPontosPossiveis = 0;
+    regrasSeriousAplicaveis.forEach(regra => {
+      totalPontosPossiveis += REGRAS_CRITICAS.includes(regra.id) ? pesos.critico : pesos.padrao;
+    });
+    let pontosPerdidos = 0;
+    violations.forEach(violacao => {
+      if (violacao.impact === 'serious') {
+        pontosPerdidos += REGRAS_CRITICAS.includes(violacao.id) ? pesos.critico : pesos.padrao;
+      }
+    });
+    const porcentagemPonderada = totalPontosPossiveis > 0
+      ? (((totalPontosPossiveis - pontosPerdidos) / totalPontosPossiveis) * 100)
+      : 100;
+
+    return { 
+      erros: errosCount, 
+      avisos: avisosCount, 
+      aprovadas: aprovadasCount, 
+      inaplicaveis: inaplicaveisCount, 
+      porcentagemSimples: porcentagemSimples,
+      porcentagemEMAG: Math.max(0, porcentagemPonderada).toFixed(1)
+    };
   }, [resultados]);
 
   const tabOrder = [...Object.keys(CATEGORIAS_EMAG), 'Outros'];
 
   return (
     <div style={{ padding: "2rem", backgroundColor: "#1e1e1e", color: "white", minHeight: "100vh" }}>
+      <button className={`back-to-top-btn ${showScroll ? 'show' : ''}`} onClick={scrollTop} aria-label="Voltar ao topo" title="Voltar ao topo">▲</button>
       <h1>Teste de Acessibilidade eMAG</h1>
-      <input
-        type="text"
-        placeholder="https://www.exemplo.com"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        style={{ width: "300px", marginRight: "1rem", padding: "0.5rem" }}
-      />
+      <input type="text" placeholder="https://www.exemplo.com" value={url} onChange={(e) => setUrl(e.target.value)} style={{ width: "300px", marginRight: "1rem", padding: "0.5rem" }} />
       <div style={{ margin: '1rem 0' }}>
         <label style={{ marginRight: '1rem' }}><input type="radio" value="emag" checked={runMode === 'emag'} onChange={e => setRunMode(e.target.value)} /> Apenas eMAG</label>
         <label style={{ marginRight: '1rem' }}><input type="radio" value="wcag" checked={runMode === 'wcag'} onChange={e => setRunMode(e.target.value)} /> Apenas WCAG (Axe-core)</label>
         <label><input type="radio" value="both" checked={runMode === 'both'} onChange={e => setRunMode(e.target.value)} /> Ambos</label>
       </div>
-      <button onClick={testarUrl} disabled={carregando} style={{ padding: "0.5rem 1rem" }}>
-        {carregando ? "Analisando..." : "Testar"}
-      </button>
-
-      {carregando && <p style={{marginTop: '1rem'}}>Isso pode levar alguns instantes...</p>}
+      <button onClick={testarUrl} disabled={carregando} style={{ padding: "0.5rem 1rem" }}>{carregando ? "Analisando..." : "Testar"}</button>
       
+      {carregando && <p style={{marginTop: '1rem'}}>Isso pode levar alguns instantes...</p>}
       {resultados && groupedResults && (
         <div style={{ marginTop: "2rem" }}>
           <div style={{ backgroundColor: "#2c2c2c", padding: "1rem", borderRadius: "8px", marginBottom: "2rem", border: "1px solid #444" }}>
             <h2 style={{ marginBottom: "1rem" }}>📊 Resumo da Avaliação</h2>
+
+            {/* 2. NOVO SELETOR PARA O TIPO DE PONTUAÇÃO */}
+            <div style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #444' }}>
+              <strong>Métrica de Pontuação:</strong>
+              <label style={{ marginLeft: '1rem' }}>
+                <input type="radio" value="emagPonderado" checked={scoringMode === 'emagPonderado'} onChange={() => setScoringMode('emagPonderado')} />
+                Ponderada eMAG
+              </label>
+              <label style={{ marginLeft: '1rem' }}>
+                <input type="radio" value="simples" checked={scoringMode === 'simples'} onChange={() => setScoringMode('simples')} />
+                Simples
+              </label>
+            </div>
+
             <ul style={{ listStyle: "none", padding: 0, lineHeight: "1.8" }}>
-              {/* 3. EXIBE A NOVA PORCENTAGEM */}
-              <li><strong>⭐ Porcentagem de Conformidade eMAG:</strong> {resumo.porcentagemEMAG}%</li>
+              {/* 3. EXIBIÇÃO CONDICIONAL DA PONTUAÇÃO */}
+              {scoringMode === 'emagPonderado' && (
+                <li><strong>⭐ Porcentagem de Conformidade eMAG:</strong> {resumo.porcentagemEMAG}%</li>
+              )}
+              {scoringMode === 'simples' && (
+                <li><strong>📈 Porcentagem de Aprovação Simples:</strong> {resumo.porcentagemSimples}%</li>
+              )}
               <li><strong>❌ Erros (impacto 'serious'):</strong> {resumo.erros}</li>
               <li><strong>⚠️ Avisos (impacto 'minor' ou 'moderate' + incompletos):</strong> {resumo.avisos}</li>
               <li><strong>✅ Aprovadas:</strong> {resumo.aprovadas}</li>
@@ -183,10 +207,8 @@ function App() {
               const tabData = groupedResults[tabName];
               const hasContent = tabData && (tabData.violations.length > 0 || tabData.incomplete.length > 0 || tabData.passes.length > 0 || tabData.inapplicable.length > 0);
               if (!hasContent) return null;
-              
               const violationsToCount = (tabName === 'Outros' ? tabData.violations : filtrarRegrasEmag(tabData.violations)).filter(v => v.impact === 'serious');
               const warningsToCount = (tabName === 'Outros' ? tabData.violations.filter(v => v.impact !== 'serious') : filtrarRegrasEmag(tabData.violations).filter(v => v.impact !== 'serious')).length + tabData.incomplete.length;
-              
               let statusIndicator = null;
               if (violationsToCount.length > 0) {
                 statusIndicator = <span style={{ marginLeft: '8px', color: '#ff8a80', fontWeight: 'bold' }}>❌ {violationsToCount.length}</span>;
