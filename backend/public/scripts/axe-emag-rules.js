@@ -88,17 +88,25 @@
     },
     // 1.5.2
     {
-      id: "check-anchor-skip-links-target",
+      id: "check-anchor-target-exists",
       evaluate: function (node) {
-        const anchors = Array.from(node.querySelectorAll('a[href^="#"]'));
-        const ids = new Set(
-          Array.from(node.querySelectorAll("[id]")).map((el) => el.id)
-        );
+        // 'node' aqui é a própria tag <a> que estamos testando.
+        const href = node.getAttribute("href");
 
-        return anchors.every((anchor) => {
-          const href = anchor.getAttribute("href").slice(1); // Remove o #
-          return href.length === 0 || ids.has(href);
-        });
+        // Ignoramos links como <a href="#">, que não apontam para um ID.
+        if (!href || href === "#" || href.length < 2) {
+          return true; // PASSA (não é um link para uma âncora específica)
+        }
+
+        // Extrai o ID do href (ex: de "#conteudo", pega "conteudo")
+        const targetId = href.substring(1);
+
+        // Tenta encontrar o elemento na página com aquele ID.
+        const targetElement = document.getElementById(targetId);
+
+        // O teste PASSA se o elemento de destino for encontrado.
+        // O teste FALHA se getElementById retornar null.
+        return targetElement !== null;
       },
       metadata: {
         description:
@@ -621,15 +629,15 @@
     //2.2.6
     {
       id: "check-noscript-on-page",
-      evaluate: function(node) {
+      evaluate: function (node) {
         // Verifica se existe pelo menos um script na página
         const hasAnyScript = document.querySelector("script") !== null;
-    
+
         // Se não houver nenhum script, a regra não se aplica e passa.
         if (!hasAnyScript) {
           return true;
         }
-    
+
         // Se houver scripts, então procuramos por uma tag <noscript>.
         // O teste PASSA se a tag <noscript> for encontrada.
         const hasNoScriptTag = document.querySelector("noscript") !== null;
@@ -1040,7 +1048,8 @@
         return title.toLowerCase() !== text.toLowerCase();
       },
       metadata: {
-        description: "Evite usar o mesmo texto no atributo title e no conteúdo visível do link para não gerar redundância desnecessária.",
+        description:
+          "Evite usar o mesmo texto no atributo title e no conteúdo visível do link para não gerar redundância desnecessária.",
       },
     },
     // 3.5.13
@@ -1051,7 +1060,8 @@
         return text.length <= 500;
       },
       metadata: {
-        description: "Mantenha o texto dos links conciso, evitando textos excessivamente longos para facilitar a leitura e navegação.",
+        description:
+          "Mantenha o texto dos links conciso, evitando textos excessivamente longos para facilitar a leitura e navegação.",
       },
     },
     // 3.5.15
@@ -1068,7 +1078,8 @@
         return true;
       },
       metadata: {
-        description: "Use URLs corretamente formatadas com protocolos válidos para evitar erros de navegação e problemas de acessibilidade.",
+        description:
+          "Use URLs corretamente formatadas com protocolos válidos para evitar erros de navegação e problemas de acessibilidade.",
       },
     },
     //3.6.2
@@ -1103,7 +1114,8 @@
         return altText !== filename;
       },
       metadata: {
-        description: "Evite usar o nome do arquivo como texto alternativo; crie descrições significativas para as imagens.",
+        description:
+          "Evite usar o nome do arquivo como texto alternativo; crie descrições significativas para as imagens.",
       },
     },
     //3.6.4
@@ -1123,7 +1135,7 @@
           "foto de",
           "leia mais",
           "saiba mais",
-          "img"
+          "img",
         ];
 
         return !genericTerms.some(
@@ -1131,7 +1143,8 @@
         );
       },
       metadata: {
-        description: "Evite usar termos genéricos como 'imagem' ou 'foto' no alt; prefira descrições específicas e significativas.",
+        description:
+          "Evite usar termos genéricos como 'imagem' ou 'foto' no alt; prefira descrições específicas e significativas.",
       },
     },
     //3.6.7
@@ -1154,7 +1167,8 @@
         );
       },
       metadata: {
-        description: "Não use o mesmo texto alternativo em imagens diferentes para evitar confusão e garantir clareza no conteúdo.",
+        description:
+          "Não use o mesmo texto alternativo em imagens diferentes para evitar confusão e garantir clareza no conteúdo.",
         help: "EMAG 3.1 6.6.7 - Imagens diferentes não devem ter o mesmo texto alternativo.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r6.6.7",
       },
@@ -1168,7 +1182,8 @@
         return alt !== title;
       },
       metadata: {
-        description: "Evite usar o mesmo texto nos atributos alt e title para imagens, garantindo descrições distintas e úteis.",
+        description:
+          "Evite usar o mesmo texto nos atributos alt e title para imagens, garantindo descrições distintas e úteis.",
       },
     },
     // 3.7.1
@@ -1211,7 +1226,8 @@
         return isLayoutTable || hasCaption || hasSummary;
       },
       metadata: {
-        description: "Inclua um <caption> ou atributo summary em tabelas de dados para descrever seu conteúdo e melhorar a acessibilidade.",
+        description:
+          "Inclua um <caption> ou atributo summary em tabelas de dados para descrever seu conteúdo e melhorar a acessibilidade.",
       },
     },
     //3.10.1
@@ -1255,7 +1271,8 @@
         return node.getAttribute("align") !== "justify";
       },
       metadata: {
-        description: "Evite usar align='justify' para alinhamento de texto, pois dificulta a leitura e prejudica a acessibilidade.",
+        description:
+          "Evite usar align='justify' para alinhamento de texto, pois dificulta a leitura e prejudica a acessibilidade.",
       },
     },
     //3.11.3
@@ -1380,7 +1397,8 @@
         );
       },
       metadata: {
-        description: "Verifique se a página contém vídeos para garantir que conteúdos multimídia sejam considerados na acessibilidade.",
+        description:
+          "Verifique se a página contém vídeos para garantir que conteúdos multimídia sejam considerados na acessibilidade.",
       },
     },
     //5.2.1
@@ -1413,7 +1431,8 @@
         );
       },
       metadata: {
-        description: "Verifique se a página contém elementos de áudio para garantir que o conteúdo multimídia seja acessível.",
+        description:
+          "Verifique se a página contém elementos de áudio para garantir que o conteúdo multimídia seja acessível.",
       },
     },
     //5.3.1
@@ -1460,7 +1479,8 @@
         );
       },
       metadata: {
-        description: "Detecte se a página contém vídeos em qualquer formato ou via iframe para considerar acessibilidade multimídia.",
+        description:
+          "Detecte se a página contém vídeos em qualquer formato ou via iframe para considerar acessibilidade multimídia.",
       },
     },
     //5.4.1
@@ -1522,7 +1542,8 @@
         );
       },
       metadata: {
-        description: "Verifique se a página contém elementos ou players de áudio para garantir o tratamento adequado do conteúdo multimídia.",
+        description:
+          "Verifique se a página contém elementos ou players de áudio para garantir o tratamento adequado do conteúdo multimídia.",
       },
     },
     // 6.2.1
@@ -1593,7 +1614,8 @@
         return invalidElements.length === 0;
       },
       metadata: {
-        description: "Use tabindex apenas para controlar a ordem de foco em elementos que não são naturalmente focalizáveis dentro dos formulários.",
+        description:
+          "Use tabindex apenas para controlar a ordem de foco em elementos que não são naturalmente focalizáveis dentro dos formulários.",
       },
     },
     //6.4.1
@@ -1681,32 +1703,41 @@
     //6.7.1
     {
       id: "check-fieldset-grouping-v2",
-      evaluate: function(node) {
-        const textInputs = node.querySelectorAll('input[type="text"], input[type="password"], input[type="email"], input[type="tel"], input[type="url"], input[type="search"], textarea, select').length;
-        const radioButtons = node.querySelectorAll('input[type="radio"]').length;
-        const checkboxes = node.querySelectorAll('input[type="checkbox"]').length;
-        
+      evaluate: function (node) {
+        const textInputs = node.querySelectorAll(
+          'input[type="text"], input[type="password"], input[type="email"], input[type="tel"], input[type="url"], input[type="search"], textarea, select'
+        ).length;
+        const radioButtons = node.querySelectorAll(
+          'input[type="radio"]'
+        ).length;
+        const checkboxes = node.querySelectorAll(
+          'input[type="checkbox"]'
+        ).length;
+
         // Um formulário PRECISA de agrupamento se tiver:
         // - Mais de 1 campo de texto/select/textarea, OU
         // - Mais de 1 botão de rádio, OU
         // - Mais de 1 caixa de seleção.
-        const requiresGrouping = (textInputs > 1) || (radioButtons > 1) || (checkboxes > 1);
-        
+        const requiresGrouping =
+          textInputs > 1 || radioButtons > 1 || checkboxes > 1;
+
         // Se, pela lógica acima, o formulário não precisa de agrupamento, o teste passa.
         if (!requiresGrouping) {
           return true;
         }
-        
+
         // Se ele PRECISA de agrupamento, então verificamos se ele tem <fieldset> ou role="group".
         const hasFieldset = node.querySelector("fieldset") !== null;
-        const hasAriaGroup = node.querySelector('[role="group"], [role="radiogroup"]') !== null;
-        
+        const hasAriaGroup =
+          node.querySelector('[role="group"], [role="radiogroup"]') !== null;
+
         // O teste passa se um elemento de agrupamento for encontrado.
         return hasFieldset || hasAriaGroup;
       },
       metadata: {
-        description: "Verifica se formulários com grupos de campos relacionados possuem <fieldset> ou um agrupamento ARIA."
-      }
+        description:
+          "Verifica se formulários com grupos de campos relacionados possuem <fieldset> ou um agrupamento ARIA.",
+      },
     },
     //6.7.2
     {
@@ -2599,23 +2630,24 @@
       metadata: {
         description:
           "Deve haver âncoras acessíveis no início da página que permitam pular para blocos de conteúdo como menu, conteúdo principal e busca. É importante ressaltar que o primeiro link da página deve ser o de ir para o conteúdo.",
-        help: "EMAG 3.1 R1.5 - Âncoras acessíveis.",
+        help: "EMAG 3.1 R1.5.1 - Âncoras acessíveis.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
       },
     },
     //1.5.2 CHECK
     {
       id: "emag-ancoras-bloco-existente",
-      selector: "html",
-      any: [],
-      all: ["check-anchor-skip-links-target"],
-      none: [],
+      selector: "a[href^='#']", // Roda em cada link que começa com #
       enabled: true,
-      tags: ["emag", "barra-acessibilidade", "atalhos"],
+      tags: ["emag", "barra-acessibilidade", "atalhos", "link"],
       impact: "serious",
+      // A regra passa se o check confirmar que o destino da âncora existe.
+      all: ["check-anchor-target-exists"],
+      any: [],
+      none: [],
       metadata: {
-        description: "Todas as âncoras devem possuir destinos que existam.",
-        help: "EMAG 3.1 R1.5 - Âncoras acessíveis.",
+        description: "Verifica se o destino de uma âncora (link interno) existe na página.",
+        help: "EMAG 3.1 R1.5.2 - Todas as âncoras devem possuir destinos que existam.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
       },
     },
@@ -2636,7 +2668,7 @@
       metadata: {
         description:
           "Deve haver âncoras acessíveis no início da página que permitam pular para blocos de conteúdo como menu, conteúdo principal e busca. É importante ressaltar que o primeiro link da página deve ser o de ir para o conteúdo.",
-        help: "EMAG 3.1 R1.5 - Âncoras acessíveis.",
+        help: "EMAG 3.1 R1.5.3 - Âncoras acessíveis.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
       },
     },

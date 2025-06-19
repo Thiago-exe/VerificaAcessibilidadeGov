@@ -27,7 +27,7 @@ app.post("/analise", async (req, res) => {
   try {
     browser = await puppeteer.launch();
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: "load", timeout: 60000 });
+    await page.goto(url, { waitUntil: "load", timeout: 120000 });
 
     await page.evaluate(axeSource);
     await page.evaluate((ptbrLocale) => {
