@@ -2,6 +2,20 @@ import React, { useState } from "react";
 
 function DropdownAcessibilidade({ titulo, itens }) {
   const [aberto, setAberto] = useState(false);
+  const getBadgeColor = () => {
+    if (titulo.includes("Erros")) {
+      return '#e53935'; // Vermelho
+    }
+    if (titulo.includes("Avisos")) {
+      return '#ffb300'; // Laranja
+    }
+    if (titulo.includes("Aprovadas")) {
+      return '#43a047'; // Verde
+    }
+    return '#666'; // Cinza
+  };
+
+  const badgeColor = getBadgeColor();
 
   if (!itens || itens.length === 0) return null;
 
@@ -64,7 +78,7 @@ function DropdownAcessibilidade({ titulo, itens }) {
                         marginLeft: "12px",
                         padding: "2px 10px",
                         borderRadius: "12px",
-                        backgroundColor: isError ? "#e53935" : "#ffb300",
+                        backgroundColor: badgeColor,
                         color: "#ffffff",
                         fontSize: "0.9em",
                         fontWeight: "bold",
@@ -106,9 +120,10 @@ function DropdownAcessibilidade({ titulo, itens }) {
   );
 }
 
-// Componente DropdownNode atualizado para exibir todos os tipos de contexto
 function DropdownNode({ node }) {
-  const [aberto, setAberto] = useState(false);
+  const [aberto, setAberto] = useState(false); // Deixamos aberto para ver o resultado
+
+  // Acessa os dados de contexto que adicionamos no check. Funciona para todas as nossas regras customizadas.
   const checkData =
     node.any[0]?.data || node.all[0]?.data || node.none[0]?.data || null;
 
@@ -155,7 +170,9 @@ function DropdownNode({ node }) {
             </p>
           )}
 
-          {/* Bloco para a regra 3.5.11 (mesmo texto, URL diferente) */}
+          {/* --- BLOCO DE CÓDIGO CORRIGIDO E ADICIONADO --- */}
+
+          {/* Bloco para a regra de links com mesmo texto */}
           {checkData && checkData.duplicates && (
             <div
               style={{
@@ -187,7 +204,7 @@ function DropdownNode({ node }) {
             </div>
           )}
 
-          {/* NOVO BLOCO para a regra 3.5.10 (mesma URL, texto diferente) */}
+          {/* Bloco para a regra de links com mesma URL */}
           {checkData && checkData.conflictingLinks && (
             <div
               style={{
@@ -219,7 +236,7 @@ function DropdownNode({ node }) {
             </div>
           )}
 
-          {/* --- NOVO BLOCO PARA EXIBIR LANDMARKS FALTANTES --- */}
+          {/* NOVO BLOCO para exibir LANDMARKS FALTANTES */}
           {checkData && checkData.missing && (
             <div
               style={{
@@ -234,6 +251,7 @@ function DropdownNode({ node }) {
                   marginTop: "0.5rem",
                   fontFamily: "monospace",
                   color: "#ffd54f",
+                  fontSize: "1.1em",
                 }}
               >
                 {checkData.missing.join(", ")}
@@ -241,26 +259,24 @@ function DropdownNode({ node }) {
             </div>
           )}
 
-          {node.html &&
-            !checkData?.duplicates &&
-            !checkData?.conflictingLinks && (
-              <div>
-                <strong>HTML:</strong>
-                <pre
-                  style={{
-                    backgroundColor: "#111",
-                    padding: "0.5rem",
-                    borderRadius: "5px",
-                    overflowX: "auto",
-                    marginTop: "0.5rem",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {node.html}
-                </pre>
-              </div>
-            )}
+          {node.html && (
+            <div>
+              <strong>HTML:</strong>
+              <pre
+                style={{
+                  backgroundColor: "#111",
+                  padding: "0.5rem",
+                  borderRadius: "5px",
+                  overflowX: "auto",
+                  marginTop: "0.5rem",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                }}
+              >
+                {node.html}
+              </pre>
+            </div>
+          )}
           {node.screenshot && (
             <div style={{ marginTop: "0.5rem" }}>
               <img

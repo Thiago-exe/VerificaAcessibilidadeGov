@@ -459,31 +459,25 @@
     {
       id: 'check-semantic-landmarks-v2',
       evaluate: function(node) {
-        // Lista de landmarks essenciais ou fortemente recomendadas. Adicionamos <main>.
         const recommendedLandmarks = ['header', 'nav', 'main', 'footer'];
         const missingLandmarks = [];
     
-        // Verifica quais landmarks da nossa lista estão faltando na página
         recommendedLandmarks.forEach(tag => {
           if (!document.querySelector(tag)) {
             missingLandmarks.push(`<${tag}>`);
           }
         });
     
-        // Condição de falha: consideramos uma falha grave se a landmark <main> estiver faltando,
-        // pois é a mais crítica para a estrutura do conteúdo.
         const mainIsMissing = !document.querySelector('main');
     
         if (mainIsMissing) {
-          // Anexa a lista completa de landmarks recomendadas que estão faltando
-          // para que o relatório seja bem informativo.
+          // Anexa a lista de landmarks que estão faltando ao resultado.
           this.data({
             missing: missingLandmarks
           });
           return false; // FALHA
         }
     
-        // Se <main> existe, consideramos que a estrutura mínima foi atendida.
         return true; // PASSA
       },
       metadata: {
@@ -2470,8 +2464,8 @@
       selector: "html",
       enabled: true,
       tags: ["emag", "html", "semantics", "structure"],
-      impact: "moderate", // O impacto é moderado, pois a ausência de <main> é significativa
-      all: ["check-semantic-landmarks-v2"], // Usa o novo check
+      impact: "moderate",
+      all: ["check-semantic-landmarks-v2"], // Usa o check correto
       any: [],
       none: [],
       metadata: {
