@@ -71,14 +71,6 @@ const groupResultsByCategory = (results) => {
   return grouped;
 };
 
-const REGRAS_CRITICAS = [
-  "color-contrast",
-  "emag-input-label",
-  "emag-no-empty-tag",
-  "emag-heading-hierarchy",
-  "emag-mouse-only-events",
-  "img-sem-alt-emag",
-];
 
 function App() {
   const [url, setUrl] = useState("");
@@ -180,46 +172,12 @@ function App() {
     const aprovadasCount = passes.length;
     const inaplicaveisCount = inapplicable.length;
 
-    // Lógica para Porcentagem Simples
-    const totalAplicaveisSimples =
-      violations.length + passes.length + incomplete.length;
-    const porcentagemSimples =
-      totalAplicaveisSimples > 0
-        ? ((aprovadasCount / totalAplicaveisSimples) * 100).toFixed(1)
-        : "100.0";
-
-    // Lógica para Porcentagem Ponderada eMAG
-    const pesos = { padrao: 0.5, critico: 1.5 };
-    const regrasSeriousAplicaveis = [
-      ...violations.filter((r) => r.impact === "serious"),
-      ...passes.filter((r) => r.impact === "serious"),
-    ];
-    let totalPontosPossiveis = 0;
-    regrasSeriousAplicaveis.forEach((regra) => {
-      totalPontosPossiveis += REGRAS_CRITICAS.includes(regra.id)
-        ? pesos.critico
-        : pesos.padrao;
-    });
-    let pontosPerdidos = 0;
-    violations.forEach((violacao) => {
-      if (violacao.impact === "serious") {
-        pontosPerdidos += REGRAS_CRITICAS.includes(violacao.id)
-          ? pesos.critico
-          : pesos.padrao;
-      }
-    });
-    const porcentagemPonderada =
-      totalPontosPossiveis > 0
-        ? ((totalPontosPossiveis - pontosPerdidos) / totalPontosPossiveis) * 100
-        : 100;
 
     return {
       erros: errosCount,
       avisos: avisosCount,
       aprovadas: aprovadasCount,
       inaplicaveis: inaplicaveisCount,
-      porcentagemSimples: porcentagemSimples,
-      porcentagemEMAG: Math.max(0, porcentagemPonderada).toFixed(1),
     };
   }, [resultados]);
 
@@ -310,50 +268,7 @@ function App() {
             }}
           >
             <h2 style={{ marginBottom: "1rem" }}>📊 Resumo da Avaliação</h2>
-
-            {/* 2. NOVO SELETOR PARA O TIPO DE PONTUAÇÃO */}
-            <div
-              style={{
-                marginBottom: "1rem",
-                paddingBottom: "1rem",
-                borderBottom: "1px solid #444",
-              }}
-            >
-              <strong>Métrica de Pontuação:</strong>
-              <label style={{ marginLeft: "1rem" }}>
-                <input
-                  type="radio"
-                  value="emagPonderado"
-                  checked={scoringMode === "emagPonderado"}
-                  onChange={() => setScoringMode("emagPonderado")}
-                />
-                Ponderada eMAG
-              </label>
-              <label style={{ marginLeft: "1rem" }}>
-                <input
-                  type="radio"
-                  value="simples"
-                  checked={scoringMode === "simples"}
-                  onChange={() => setScoringMode("simples")}
-                />
-                Simples
-              </label>
-            </div>
-
             <ul style={{ listStyle: "none", padding: 0, lineHeight: "1.8" }}>
-              {/* 3. EXIBIÇÃO CONDICIONAL DA PONTUAÇÃO */}
-              {scoringMode === "emagPonderado" && (
-                <li>
-                  <strong>⭐ Porcentagem de Conformidade eMAG:</strong>{" "}
-                  {resumo.porcentagemEMAG}%
-                </li>
-              )}
-              {scoringMode === "simples" && (
-                <li>
-                  <strong>📈 Porcentagem de Aprovação Simples:</strong>{" "}
-                  {resumo.porcentagemSimples}%
-                </li>
-              )}
               <li>
                 <strong>❌ Erros (impacto 'serious'):</strong> {resumo.erros}
               </li>

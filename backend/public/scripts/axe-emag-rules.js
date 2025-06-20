@@ -2629,8 +2629,8 @@
       impact: "serious",
       metadata: {
         description:
-          "Deve haver âncoras acessíveis no início da página que permitam pular para blocos de conteúdo como menu, conteúdo principal e busca. É importante ressaltar que o primeiro link da página deve ser o de ir para o conteúdo.",
-        help: "EMAG 3.1 R1.5.1 - Âncoras acessíveis.",
+          "Deve haver âncoras acessíveis no início da página que permitam pular para blocos de conteúdo como menu, conteúdo principal e busca.",
+        help: "EMAG 3.1 R1.5.1 - Devem haver âncoras no topo da página para pular para blocos de conteúdo.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
       },
     },
@@ -2646,7 +2646,8 @@
       any: [],
       none: [],
       metadata: {
-        description: "Verifica se o destino de uma âncora (link interno) existe na página.",
+        description:
+          "Verifica se o destino de uma âncora (link interno) existe na página.",
         help: "EMAG 3.1 R1.5.2 - Todas as âncoras devem possuir destinos que existam.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
       },
@@ -2667,7 +2668,7 @@
       impact: "serious",
       metadata: {
         description:
-          "Deve haver âncoras acessíveis no início da página que permitam pular para blocos de conteúdo como menu, conteúdo principal e busca. É importante ressaltar que o primeiro link da página deve ser o de ir para o conteúdo.",
+          "Deve haver âncoras acessíveis no início da página que permitam pular para blocos de conteúdo como menu, conteúdo principal e busca.",
         help: "EMAG 3.1 R1.5.3 - Âncoras acessíveis.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
       },
@@ -2685,7 +2686,7 @@
       metadata: {
         description:
           "É importante ressaltar que o primeiro link da página deve ser o de ir para o conteúdo.",
-        help: "EMAG 3.1 R1.5 - Âncoras acessíveis.",
+        help: "EMAG 3.1 R1.5.9 - Âncora deve ser o primeiro link da página.",
         helpUrl: "https://emag.governoeletronico.gov.br/#r1.5",
       },
     },
