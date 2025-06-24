@@ -71,7 +71,6 @@ const groupResultsByCategory = (results) => {
   return grouped;
 };
 
-
 function App() {
   const [url, setUrl] = useState("");
   const [resultados, setResultados] = useState(null);
@@ -125,7 +124,7 @@ function App() {
     setCarregando(true);
     setResultados(null);
     try {
-      const resposta = await fetch("http://localhost:3001/analise", {
+      const resposta = await fetch("http://204.236.197.245:3001/analise", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, runMode }),
@@ -171,7 +170,6 @@ function App() {
       incomplete.length;
     const aprovadasCount = passes.length;
     const inaplicaveisCount = inapplicable.length;
-
 
     return {
       erros: errosCount,
